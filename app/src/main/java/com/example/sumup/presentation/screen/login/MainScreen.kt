@@ -54,7 +54,7 @@ fun MainScreen(
         // Subtitle
         Text(
             text = "Explore our apps now",
-            fontSize = 15.sp,
+            fontSize = 16.sp,
             color = Color.Black,
             textAlign = TextAlign.Center
         )
@@ -67,15 +67,16 @@ fun MainScreen(
             // Login Button
             Button(
                 onClick = { onLoginClick() },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
+                elevation = ButtonDefaults.buttonElevation(4.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = purpleMain
                 ),
                 modifier = Modifier
-                    .width(130.dp)
-                    .height(50.dp)
+                    .width(140.dp)
+                    .height(55.dp)
             ) {
-                Text("Login", fontSize = 16.sp, color = Color.White)
+                Text("Login", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.width(30.dp))
@@ -83,15 +84,15 @@ fun MainScreen(
             // Register (text only)
             Button(
                 onClick = { onRegisterClick() },
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White
                 ),
                 modifier = Modifier
-                    .width(130.dp)
-                    .height(50.dp)
+                    .width(140.dp)
+                    .height(55.dp)
             ) {
-                Text("Sign Up", fontSize = 16.sp, color = purpleMain)
+                Text("Sign Up", fontSize = 16.sp, color = purpleMain, fontWeight = FontWeight.Bold)
             }
         }
     }
