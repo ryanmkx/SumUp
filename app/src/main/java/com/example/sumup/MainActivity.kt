@@ -11,8 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.sumup.presentation.screen.chat.ChatDetailScreen
+import com.example.sumup.presentation.screen.chat.ChatMainScreen
 import com.example.sumup.presentation.screen.flashcard.FlashcardCardScreen
 import com.example.sumup.presentation.screen.flashcard.FlashcardMainScreen
+import com.example.sumup.presentation.screen.flashcard.FlashcardResultScreen
 import com.example.sumup.presentation.screen.history.HistoryDetailScreen
 import com.example.sumup.presentation.screen.history.HistoryMainScreen
 import com.example.sumup.presentation.screen.login.LoginScreen
@@ -21,6 +24,8 @@ import com.example.sumup.presentation.screen.login.SignUpScreen
 import com.example.sumup.presentation.screen.profile.EditProfileScreen
 import com.example.sumup.presentation.screen.profile.ProfileMainScreen
 import com.example.sumup.presentation.screen.quiz.QuizMainScreen
+import com.example.sumup.presentation.screen.quiz.QuizQuestionScreen
+import com.example.sumup.presentation.screen.quiz.QuizResultScreen
 import com.example.sumup.presentation.screen.textSummarizer.SummarizeMainScreen
 import com.example.sumup.presentation.screen.textSummarizer.SummarizeResultScreen
 import com.example.sumup.presentation.ui.theme.SumUpTheme
@@ -48,8 +53,13 @@ class MainActivity : ComponentActivity() {
 //                    )
 //                HistoryMainScreen()
 //                FlashcardMainScreen()
-                QuizMainScreen()
-                FlashcardCardScreen()
+//                QuizMainScreen()
+//                FlashcardCardScreen()
+//                FlashcardResultScreen()
+//                QuizQuestionScreen()
+//                QuizResultScreen()
+//                ChatMainScreen()
+                ChatDetailScreen()
             }
         }
     }

@@ -65,7 +65,7 @@ fun FlashcardCardScreen(
                     painter = painterResource(id = R.drawable.cards),
                     contentDescription = "Flashcard Icon",
                     tint = purpleMain,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(25.dp)
                 )
 
                 LinearProgressIndicator(

@@ -1,11 +1,11 @@
-package com.example.sumup.presentation.screen.flashcard
+package com.example.sumup.presentation.screen.quiz
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,22 +17,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sumup.R
 import com.example.sumup.presentation.screen.common.Header
-import com.example.sumup.presentation.screen.common.HeaderWithBack
-import com.example.sumup.presentation.screen.ui.greenTick
 import com.example.sumup.presentation.screen.ui.purpleMain
 
 @Composable
-fun FlashcardResultScreen(
+fun QuizResultScreen(
     onBack: () -> Unit = {},
     onNext: () -> Unit = {},
+    onReview: () -> Unit = {}, // ✅ Review Answers action
     progress: Float = 1f,
     currentIndex: Int = 5,
     total: Int = 5,
+    score: Int = 4
 ) {
     Scaffold(
         topBar = {
             Header(
-                title = "Flashcard"
+                title = "Quiz"
             )
         }
     ) { innerPadding ->
@@ -43,15 +43,15 @@ fun FlashcardResultScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Progress row
+            // Progress Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.cards),
-                    contentDescription = "Flashcard Icon",
+                    painter = painterResource(id = R.drawable.question_icon),
+                    contentDescription = "Quiz Icon",
                     tint = purpleMain,
                     modifier = Modifier.size(25.dp)
                 )
@@ -76,6 +76,7 @@ fun FlashcardResultScreen(
 
             Spacer(modifier = Modifier.height(30.dp))
 
+            // Result card
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
@@ -83,41 +84,83 @@ fun FlashcardResultScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .matchParentSize()
                         .background(purpleMain, RoundedCornerShape(16.dp))
-                        .padding(10.dp),
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.tick_icon),
-                        contentDescription = "Tick Icon",
-                        tint = greenTick,
-                        modifier = Modifier.size(80.dp)
-                    )
-                    Spacer(modifier = Modifier.height(15.dp))
+                    Spacer(modifier = Modifier.height(1.dp))
+
+                    // ✅ Middle content (trophy + texts)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.trophy_icon),
+                            contentDescription = "Trophy Icon",
+                            tint = Color.Unspecified,
+                            modifier = Modifier.size(80.dp)
+                        )
+                        Spacer(modifier = Modifier.height(15.dp))
+                        Text(
+                            text = "Congratulations",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Your Score",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // ✅ Score display
+                        Text(
+                            text = "$score / $total",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Yellow,
+                            textAlign = TextAlign.Center,
+                        )
+
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        Text(
+                            text = "You did a good job. Continue learning!",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                    }
+
+                    // ✅ Bottom Review Answers
                     Text(
-                        text = "Congratulations",
-                        fontSize = 20.sp,
+                        text = "Click to Review Answers",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                    Spacer(modifier = Modifier.height(5.dp))
-
-                    Text(
-                        text = "You've reviewed all the flashcards",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = Color.White,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 12.dp)
+                        modifier = Modifier
+                            .padding(top = 16.dp, bottom = 8.dp)
+                            .clickable { onReview() }
                     )
                 }
             }
+
             Spacer(modifier = Modifier.height(40.dp))
+
             // Navigation buttons
             Row(
                 modifier = Modifier
@@ -126,7 +169,7 @@ fun FlashcardResultScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = onBack, // TODO
+                    onClick = onBack,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp, max = 60.dp),
@@ -144,7 +187,7 @@ fun FlashcardResultScreen(
                 }
 
                 Button(
-                    onClick = onNext, // TODO
+                    onClick = onNext,
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp, max = 60.dp),
@@ -167,6 +210,6 @@ fun FlashcardResultScreen(
 
 @Preview(showBackground = true)
 @Composable
-fun FlashcardResultScreenPreview() {
-    FlashcardResultScreen()
+fun QuizResultScreenPreview() {
+    QuizResultScreen()
 }

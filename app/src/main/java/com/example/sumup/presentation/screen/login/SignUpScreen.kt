@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sumup.presentation.screen.ui.lightpurpleMain
+import com.example.sumup.presentation.screen.ui.lightPurpleMain
 import com.example.sumup.presentation.screen.ui.purpleMain
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -92,8 +92,8 @@ fun SignUpScreen() {
                     onNext = { focusManager.clearFocus() }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = purpleMain, // Label color when focused
@@ -117,8 +117,8 @@ fun SignUpScreen() {
                     onNext = { focusManager.clearFocus() }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = purpleMain, // Label color when focused
@@ -141,8 +141,8 @@ fun SignUpScreen() {
                     onNext = { focusManager.clearFocus() }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = purpleMain, // Label color when focused
@@ -165,8 +165,8 @@ fun SignUpScreen() {
                     onDone = { focusManager.clearFocus() }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = purpleMain, // Label color when focused

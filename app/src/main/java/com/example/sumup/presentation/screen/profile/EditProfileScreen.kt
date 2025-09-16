@@ -35,7 +35,7 @@ import com.example.sumup.R
 import com.example.sumup.presentation.screen.common.FooterBar
 import com.example.sumup.presentation.screen.common.FooterNavigation
 import com.example.sumup.presentation.screen.common.HeaderWithBack
-import com.example.sumup.presentation.screen.ui.lightpurpleMain
+import com.example.sumup.presentation.screen.ui.lightPurpleMain
 import com.example.sumup.presentation.screen.ui.purpleMain
 import coil.compose.AsyncImage
 
@@ -144,8 +144,8 @@ fun EditProfileScreen(
                     .height(56.dp)
                 ,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = Color.Gray, // Label color when focused
@@ -177,8 +177,8 @@ fun EditProfileScreen(
                     .height(56.dp)
                 ,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = Color.Gray, // Label color when focused
@@ -210,8 +210,8 @@ fun EditProfileScreen(
                     .height(56.dp)
                 ,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightpurpleMain,
-                    unfocusedContainerColor = lightpurpleMain,
+                    focusedContainerColor = lightPurpleMain,
+                    unfocusedContainerColor = lightPurpleMain,
                     focusedBorderColor = purpleMain,
                     unfocusedBorderColor = Color.White,
                     focusedLabelColor = Color.Gray, // Label color when focused
