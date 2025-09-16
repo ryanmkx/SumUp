@@ -24,7 +24,10 @@ import com.example.sumup.presentation.screen.common.Header
 import com.example.sumup.presentation.screen.ui.purpleMain
 
 @Composable
-fun SummarizeMainScreen() {
+fun SummarizeMainScreen(
+    onSummarize: (String) -> Unit = {},
+    onFooterNavigate: (FooterNavigation) -> Unit = {}
+) {
     val focusManager = LocalFocusManager.current
     var content by remember { mutableStateOf("") }
     val maxChars = 1000
@@ -34,7 +37,7 @@ fun SummarizeMainScreen() {
         bottomBar = {
             FooterBar(
                 currentRoute = FooterNavigation.Summarize,
-                onNavigate = {}
+                onNavigate = onFooterNavigate
             )
         }
     ) { innerPadding ->
@@ -116,7 +119,7 @@ fun SummarizeMainScreen() {
 
             // Summarize Button pinned at bottom
             Button(
-                onClick = { /* TODO */ },
+                onClick = { onSummarize(content) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp, max = 60.dp),

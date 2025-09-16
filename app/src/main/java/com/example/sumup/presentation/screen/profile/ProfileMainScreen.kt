@@ -30,11 +30,12 @@ fun ProfileMainScreen(
     email: String = "chingchong@gmail.com",
     passwordMasked: String = "********",
     onEditProfile: () -> Unit = {},
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    onFooterNavigate: (FooterNavigation) -> Unit = {}
 ) {
     Scaffold(
         topBar = { Header(title = "Profile") },
-        bottomBar = { FooterBar(currentRoute = FooterNavigation.Profile, onNavigate = {}) }
+        bottomBar = { FooterBar(currentRoute = FooterNavigation.Profile, onNavigate = onFooterNavigate) }
     ) { innerPadding ->
         Box(
             modifier = Modifier

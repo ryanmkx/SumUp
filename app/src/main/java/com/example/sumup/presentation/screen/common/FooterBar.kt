@@ -80,7 +80,7 @@ fun FooterBar(
             ) {
                 FooterIcon(
                     iconRes = R.drawable.quiz_icon,
-                    label = "QUIZ",
+                    label = "Q&A/CARD",
                     isActive = currentRoute == FooterNavigation.Quiz
                 ) { onNavigate(FooterNavigation.Quiz) }
 

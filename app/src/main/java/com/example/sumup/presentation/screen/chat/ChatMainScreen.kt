@@ -26,7 +26,8 @@ import com.example.sumup.presentation.screen.ui.purpleMain
 
 @Composable
 fun ChatMainScreen(
-    onChatClick: (String) -> Unit = {} // callback when user clicks on chat
+    onChatClick: (String) -> Unit = {}, // callback when user clicks on chat
+    onFooterNavigate: (FooterNavigation) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -37,7 +38,7 @@ fun ChatMainScreen(
         bottomBar = {
             FooterBar(
                 currentRoute = FooterNavigation.Chat,
-                onNavigate = {}
+                onNavigate = onFooterNavigate
             )
         }
     ) { innerPadding ->
@@ -51,7 +52,7 @@ fun ChatMainScreen(
             Text(
                 text = "Hello,",
                 fontSize = 20.sp,
-                color = Color.Gray
+                color = purpleMain
             )
             Text(
                 text = "Elon Musk",

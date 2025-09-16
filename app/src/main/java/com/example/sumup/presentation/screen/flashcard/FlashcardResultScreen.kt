@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sumup.R
 import com.example.sumup.presentation.screen.common.Header
-import com.example.sumup.presentation.screen.common.HeaderWithBack
 import com.example.sumup.presentation.screen.ui.greenTick
 import com.example.sumup.presentation.screen.ui.purpleMain
 

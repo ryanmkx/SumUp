@@ -25,7 +25,12 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onBack: () -> Unit = {},
+    onForgotPassword: () -> Unit = {},
+    onLogin: () -> Unit = {},
+    onCreateAccount: () -> Unit = {},
+) {
     // State variables for text fields
     var logInEmail by remember { mutableStateOf("") }
     var logInPassword by remember { mutableStateOf("") }
@@ -40,7 +45,7 @@ fun LoginScreen() {
     ) {
         // Back Button
         IconButton(
-            onClick = { /* Handle back button click */ },
+            onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = 16.dp)
@@ -134,7 +139,7 @@ fun LoginScreen() {
 
             // "Forgot Password?" text
             TextButton(
-                onClick = { /* Handle forgot password click */ },
+                onClick = onForgotPassword,
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text(
@@ -148,7 +153,7 @@ fun LoginScreen() {
 
             // "Login" button
             Button(
-                onClick = { /* Handle login click */ },
+                onClick = onLogin,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -165,7 +170,7 @@ fun LoginScreen() {
 
             // "Create a new account" text
             TextButton(
-                onClick = { /* Handle create account click */ }
+                onClick = onCreateAccount
             ) {
                 Text(
                     text = "Create a new account",

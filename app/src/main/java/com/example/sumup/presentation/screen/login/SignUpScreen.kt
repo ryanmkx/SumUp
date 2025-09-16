@@ -23,7 +23,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @Composable
-fun SignUpScreen() {
+fun SignUpScreen(
+    onBack: () -> Unit = {},
+    onSignUp: () -> Unit = {},
+    onAlreadyHaveAccount: () -> Unit = {},
+) {
     // State variables for text fields
     var email by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -40,7 +44,7 @@ fun SignUpScreen() {
     ) {
         // Back Button
         IconButton(
-            onClick = { /* Handle back button click */ },
+            onClick = onBack,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = 16.dp)
@@ -182,7 +186,7 @@ fun SignUpScreen() {
 
             // "Sign Up" button
             Button(
-                onClick = { /* Handle login click */ },
+                onClick = onSignUp,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -200,7 +204,7 @@ fun SignUpScreen() {
 
             // "Already have an account" text
             TextButton(
-                onClick = { /* Handle create account click */ }
+                onClick = onAlreadyHaveAccount
             ) {
                 Text(
                     text = "Already have an account",

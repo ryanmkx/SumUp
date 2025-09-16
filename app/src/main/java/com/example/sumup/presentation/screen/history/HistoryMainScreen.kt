@@ -25,7 +25,10 @@ import com.example.sumup.presentation.screen.common.Header
 
 
 @Composable
-fun HistoryMainScreen() {
+fun HistoryMainScreen(
+    onFooterNavigate: (FooterNavigation) -> Unit = {},
+    onHistoryClick: (String, String) -> Unit = { _, _ -> }
+) {
     val historyList = listOf(
         Pair("26 June 2025", "First Summarizer content is this one ya, look here to see more information. Click this butwerwebasdHIBFEWUYFGWEFUYWEGFYUWEGFUWE   FGWEYUDFGWE YUFDDSSFD..."),
         Pair("03 May 2025", "Computer Science is a big circle that contain a lot of others component like math, IT and...")
@@ -38,7 +41,7 @@ fun HistoryMainScreen() {
         bottomBar = {
             FooterBar(
                 currentRoute = FooterNavigation.History,
-                onNavigate = {}
+                onNavigate = onFooterNavigate
             )
         }
     ) { innerPadding ->
@@ -61,7 +64,7 @@ fun HistoryMainScreen() {
                     HistoryCard(
                         date = date,
                         content = content,
-                        onClick = { println("Clicked on $date") }
+                        onClick = { onHistoryClick(date, content) }
                     )
                 }
             }
