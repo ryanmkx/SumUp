@@ -7,7 +7,6 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,20 +24,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sumup.R
-import com.example.sumup.presentation.screen.common.FooterBar
-import com.example.sumup.presentation.screen.common.FooterNavigation
 import com.example.sumup.presentation.screen.common.HeaderWithBack
-import com.example.sumup.presentation.screen.ui.lightPurpleMain
-import com.example.sumup.presentation.screen.ui.purpleMain
+import com.example.sumup.presentation.ui.theme.lightPurpleMain
+import com.example.sumup.presentation.ui.theme.purpleMain
 import coil.compose.AsyncImage
-import android.util.Patterns
+import com.example.sumup.data.repository.FirebaseAuthRepository
+import com.example.sumup.data.repository.FirestoreUserProfileRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun EditProfileScreen(
@@ -58,8 +56,8 @@ fun EditProfileScreen(
     LaunchedEffect(Unit) {
         try {
             // Import the necessary classes
-            val authRepo = com.example.sumup.data.FirebaseAuthRepository(com.google.firebase.auth.FirebaseAuth.getInstance())
-            val profileRepo = com.example.sumup.data.FirestoreUserProfileRepository(com.google.firebase.firestore.FirebaseFirestore.getInstance())
+            val authRepo = FirebaseAuthRepository(FirebaseAuth.getInstance())
+            val profileRepo = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
             
             val userId = authRepo.getCurrentUserId()
             if (userId != null) {

@@ -13,8 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sumup.presentation.screen.ui.lightPurpleMain
-import com.example.sumup.presentation.screen.ui.purpleMain
+import com.example.sumup.presentation.ui.theme.lightPurpleMain
+import com.example.sumup.presentation.ui.theme.purpleMain
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.runtime.getValue

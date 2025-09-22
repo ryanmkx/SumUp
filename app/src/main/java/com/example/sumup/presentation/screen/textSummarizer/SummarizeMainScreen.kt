@@ -21,7 +21,7 @@ import com.example.sumup.R
 import com.example.sumup.presentation.screen.common.FooterBar
 import com.example.sumup.presentation.screen.common.FooterNavigation
 import com.example.sumup.presentation.screen.common.Header
-import com.example.sumup.presentation.screen.ui.purpleMain
+import com.example.sumup.presentation.ui.theme.purpleMain
 
 @Composable
 fun SummarizeMainScreen(

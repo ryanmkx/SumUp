@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sumup.R
 import com.example.sumup.presentation.screen.common.HeaderWithBackAndPic
-import com.example.sumup.presentation.screen.ui.purpleMain
+import com.example.sumup.presentation.ui.theme.purpleMain
 
 data class ChatMessage(
     val text: String,

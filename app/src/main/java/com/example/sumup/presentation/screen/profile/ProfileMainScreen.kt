@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sumup.R
-import com.example.sumup.presentation.screen.ui.purpleMain
+import com.example.sumup.presentation.ui.theme.purpleMain
 import com.example.sumup.presentation.screen.common.FooterBar
 import com.example.sumup.presentation.screen.common.FooterNavigation
 import com.example.sumup.presentation.screen.common.Header

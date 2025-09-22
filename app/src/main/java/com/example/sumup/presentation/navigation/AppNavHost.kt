@@ -19,10 +19,13 @@ import androidx.compose.ui.platform.LocalContext
 import com.example.sumup.businessLogic.LogIn
 import com.example.sumup.businessLogic.SignUp
 import com.example.sumup.businessLogic.UpdateProfile
+import com.example.sumup.presentation.viewModel.HistoryViewModel
+import com.example.sumup.businessLogic.GetUserSummaries
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.example.sumup.data.FirebaseAuthRepository
-import com.example.sumup.data.FirestoreUserProfileRepository
+import com.example.sumup.data.repository.FirebaseAuthRepository
+import com.example.sumup.data.repository.FirestoreUserProfileRepository
+import com.example.sumup.data.repository.FirestoreSummaryRepository
 import com.example.sumup.presentation.screen.login.MainScreen
 import com.example.sumup.presentation.screen.login.LoginScreen
 import com.example.sumup.presentation.screen.login.SignUpScreen
@@ -94,8 +97,8 @@ fun AppNavHost(
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
             val signInUseCase = remember {
-                val authRepo = FirebaseAuthRepository(FirebaseAuth.getInstance())
-                val profileRepo = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
+                val authRepo: FirebaseAuthRepository = FirebaseAuthRepository(FirebaseAuth.getInstance())
+                val profileRepo: FirestoreUserProfileRepository = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
                 LogIn(authRepo, profileRepo)
             }
 
@@ -126,8 +129,8 @@ fun AppNavHost(
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
             val signUpUseCase = remember {
-                val authRepo = FirebaseAuthRepository(FirebaseAuth.getInstance())
-                val profileRepo = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
+                val authRepo: FirebaseAuthRepository = FirebaseAuthRepository(FirebaseAuth.getInstance())
+                val profileRepo: FirestoreUserProfileRepository = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
                 SignUp(authRepo, profileRepo)
             }
 
@@ -331,7 +334,12 @@ fun AppNavHost(
             )
         }
         composable(Routes.HISTORY_MAIN) {
+            val authRepo = remember { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
+            val summaryRepo = remember { FirestoreSummaryRepository(FirebaseFirestore.getInstance()) }
+            val historyViewModel = remember { HistoryViewModel(authRepo, summaryRepo) }
+            
             HistoryMainScreen(
+                viewModel = historyViewModel,
                 onFooterNavigate = { dest ->
                     when (dest) {
                         com.example.sumup.presentation.screen.common.FooterNavigation.Quiz ->

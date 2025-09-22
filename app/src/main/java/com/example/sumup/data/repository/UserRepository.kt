@@ -1,4 +1,4 @@
-package com.example.sumup.data
+package com.example.sumup.data.repository
 
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore

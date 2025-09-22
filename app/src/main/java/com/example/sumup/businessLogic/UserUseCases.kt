@@ -1,12 +1,11 @@
 package com.example.sumup.businessLogic
 
-import com.example.sumup.data.UserAuthRepository
-import com.example.sumup.data.UserProfileRepository
-import com.example.sumup.data.Users
+import com.example.sumup.data.repository.UserAuthRepository
+import com.example.sumup.data.repository.UserProfileRepository
+import com.example.sumup.data.repository.Users
 import com.google.firebase.Timestamp
 
-// In the Domain Layer
-// This is your domain-level User model, not tied to Firebase
+// Domain model for User (not tied to Firebase)
 data class User(
     val userId: String,
     val username: String,
