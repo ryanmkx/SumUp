@@ -38,20 +38,60 @@ import com.example.sumup.presentation.screen.common.HeaderWithBack
 import com.example.sumup.presentation.screen.ui.lightPurpleMain
 import com.example.sumup.presentation.screen.ui.purpleMain
 import coil.compose.AsyncImage
+import android.util.Patterns
 
 @Composable
 fun EditProfileScreen(
-    initialName: String = "Elon Musk",
-    initialEmail: String = "chingchong@gmail.com",
-    initialPassword: String = "********************",
-    onUpdate: (String, String, String) -> Unit = { _, _, _ -> },
+    onUpdate: (String) -> Unit = { _ -> },
     onNavigateBack: () -> Unit = {}
 ) {
-    var name by remember { mutableStateOf(initialName) }
-    var email by remember { mutableStateOf(initialEmail) }
-    var password by remember { mutableStateOf(initialPassword) }
+    var name by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    // Validation states
+    var nameError by remember { mutableStateOf("") }
+    
     val context = LocalContext.current
+    
+    // Load user data when screen is first displayed
+    LaunchedEffect(Unit) {
+        try {
+            // Import the necessary classes
+            val authRepo = com.example.sumup.data.FirebaseAuthRepository(com.google.firebase.auth.FirebaseAuth.getInstance())
+            val profileRepo = com.example.sumup.data.FirestoreUserProfileRepository(com.google.firebase.firestore.FirebaseFirestore.getInstance())
+            
+            val userId = authRepo.getCurrentUserId()
+            if (userId != null) {
+                val profileResult = profileRepo.getUserProfile(userId)
+                if (profileResult.isSuccess) {
+                    val user = profileResult.getOrNull()
+                    name = user?.username ?: ""
+                    println("DEBUG: Loaded username: '$name'")
+                } else {
+                    println("DEBUG: Failed to load profile: ${profileResult.exceptionOrNull()?.message}")
+                }
+            } else {
+                println("DEBUG: No user ID found")
+            }
+        } catch (e: Exception) {
+            println("DEBUG: Exception loading user data: ${e.message}")
+        } finally {
+            isLoading = false
+        }
+    }
+    
+    // Validation functions
+    fun validateName(name: String): String {
+        return when {
+            name.isBlank() -> "Username is required"
+            name.length < 3 -> "Username must be at least 3 characters"
+            else -> ""
+        }
+    }
+    
+    // Check if form is valid
+    val isFormValid = name.isNotBlank() && nameError.isEmpty()
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -75,13 +115,25 @@ fun EditProfileScreen(
 //            )
 //        }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = purpleMain
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             Spacer(modifier = Modifier.height(10.dp))
 
             // Profile picture with edit button overlay
@@ -127,10 +179,14 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(25.dp))
 
-            // Name Field
+            // Username Field
             OutlinedTextField(
                 value = name,
-                onValueChange = {name = it},
+                onValueChange = { 
+                    name = it
+                    nameError = validateName(it)
+                },
+                label = { Text("Username") },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.profile_icon),
@@ -146,106 +202,56 @@ fun EditProfileScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = lightPurpleMain,
                     unfocusedContainerColor = lightPurpleMain,
-                    focusedBorderColor = purpleMain,
-                    unfocusedBorderColor = Color.White,
-                    focusedLabelColor = Color.Gray, // Label color when focused
-                    unfocusedLabelColor = Color.Gray // Label color when unfocused
+                    focusedBorderColor = if (nameError.isNotEmpty()) Color.Red else purpleMain,
+                    unfocusedBorderColor = if (nameError.isNotEmpty()) Color.Red else Color.White,
+                    focusedLabelColor = if (nameError.isNotEmpty()) Color.Red else purpleMain,
+                    unfocusedLabelColor = if (nameError.isNotEmpty()) Color.Red else Color.Gray
                 ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                isError = nameError.isNotEmpty(),
+                supportingText = if (nameError.isNotEmpty()) {
+                    { Text(nameError, color = Color.Red, fontSize = 12.sp) }
+                } else null,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
-                    onNext = { focusManager.clearFocus() }
+                    onDone = { focusManager.clearFocus() }
                 ),
                 maxLines = 1
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Email Field
-            OutlinedTextField(
-                value = email,
-                onValueChange = {email = it},
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.email_icon),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = purpleMain
-                    )
-                },
-                modifier = Modifier
-                    .width(330.dp)
-                    .height(56.dp)
-                ,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightPurpleMain,
-                    unfocusedContainerColor = lightPurpleMain,
-                    focusedBorderColor = purpleMain,
-                    unfocusedBorderColor = Color.White,
-                    focusedLabelColor = Color.Gray, // Label color when focused
-                    unfocusedLabelColor = Color.Gray // Label color when unfocused
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.clearFocus() }
-                ),
-                maxLines = 1
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Password Field
-            OutlinedTextField(
-                value = initialPassword,
-                onValueChange = {password = it},
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.password_icon),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = purpleMain
-                    )
-                },
-                modifier = Modifier
-                    .width(330.dp)
-                    .height(56.dp)
-                ,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = lightPurpleMain,
-                    unfocusedContainerColor = lightPurpleMain,
-                    focusedBorderColor = purpleMain,
-                    unfocusedBorderColor = Color.White,
-                    focusedLabelColor = Color.Gray, // Label color when focused
-                    unfocusedLabelColor = Color.Gray // Label color when unfocused
-                ),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.clearFocus() }
-                ),
-                maxLines = 1
-            )
-
-            Spacer(modifier = Modifier.height(70.dp))
+            Spacer(modifier = Modifier.height(100.dp))
 
             // Update Button
             Button(
                 onClick = {
-                    Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
-                    onUpdate(name, email, password)
+                    // Validate before updating
+                    nameError = validateName(name)
+                    
+                    if (nameError.isEmpty()) {
+                        Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
+                        onUpdate(name)
+                    } else {
+                        Toast.makeText(context, "Please fix the errors before updating", Toast.LENGTH_SHORT).show()
+                    }
                 },
+                enabled = isFormValid,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp, max = 60.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = purpleMain),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isFormValid) purpleMain else Color.Gray,
+                    disabledContainerColor = Color.Gray
+                ),
                 shape = RoundedCornerShape(16.dp),
                 elevation = ButtonDefaults.buttonElevation(6.dp)
             ) {
                 Text(
-                    text = "Update",
+                    text = "Update Profile",
                     color = Color.White,
                     fontSize = 18.sp,
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.SemiBold
                 )
+            }
             }
         }
     }

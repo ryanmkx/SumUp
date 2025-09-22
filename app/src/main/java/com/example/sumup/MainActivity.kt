@@ -13,10 +13,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.sumup.presentation.navigation.AppNavHost
 import com.example.sumup.presentation.ui.theme.SumUpTheme
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        FirebaseApp.initializeApp(this) // 🔑 initialize Firebase here
         enableEdgeToEdge()
         setContent {
             SumUpTheme {
@@ -25,3 +29,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+

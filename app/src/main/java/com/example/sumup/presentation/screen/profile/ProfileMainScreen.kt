@@ -26,11 +26,12 @@ import com.example.sumup.presentation.screen.common.Header
 
 @Composable
 fun ProfileMainScreen(
-    userName: String = "ee",
-    email: String = "chingchong@gmail.com",
-    passwordMasked: String = "********",
+    userName: String = "",
+    email: String = "",
+    passwordMasked: String = "***********",
     onEditProfile: () -> Unit = {},
     onLogout: () -> Unit = {},
+    onChangePassword: () -> Unit = {},
     onFooterNavigate: (FooterNavigation) -> Unit = {}
 ) {
     Scaffold(
@@ -61,7 +62,7 @@ fun ProfileMainScreen(
                         .clip(CircleShape)
                 )
 
-                Spacer(modifier = Modifier.height(25.dp))
+                Spacer(modifier = Modifier.height(15.dp))
 
                 // User Name
                 Text(
@@ -71,7 +72,7 @@ fun ProfileMainScreen(
                     color = Color.Black
                 )
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Email Box
                 ProfileInfoBox(
@@ -80,12 +81,6 @@ fun ProfileMainScreen(
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))
-
-                // Password Box
-                ProfileInfoBox(
-                    icon = R.drawable.password_icon,
-                    value = passwordMasked
-                )
             }
 
             // ======= Buttons anchored at the bottom =======
@@ -97,6 +92,26 @@ fun ProfileMainScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
+                    onClick = onChangePassword,
+                    modifier = Modifier
+                        .width(330.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF7C4DFF) // Purple
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(4.dp)
+                ) {
+                    Text(
+                        text = "Change Password",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
                     onClick = onEditProfile,
                     modifier = Modifier
                         .width(330.dp)
@@ -104,11 +119,11 @@ fun ProfileMainScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF7C4DFF) // Purple
                     ),
-                    shape = MaterialTheme.shapes.medium,
+                    shape = RoundedCornerShape(16.dp),
                     elevation = ButtonDefaults.buttonElevation(4.dp)
                 ) {
                     Text(
-                        text = "Edit Profile",
+                        text = "Edit Username",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold
@@ -139,7 +154,7 @@ fun ProfileInfoBox(icon: Int, value: String) {
             .width(330.dp)
             .height(56.dp)
             .background(Color(0xFFEDE7F6),
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(16.dp)
             )
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -155,7 +170,7 @@ fun ProfileInfoBox(icon: Int, value: String) {
 
         Text(
             text = value,
-            fontSize = 14.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = purpleMain,
             maxLines = 1

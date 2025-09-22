@@ -23,12 +23,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 @Composable
 fun LoginScreen(
     onBack: () -> Unit = {},
     onForgotPassword: () -> Unit = {},
-    onLogin: () -> Unit = {},
+    onLogin: (String, String) -> Unit = { _, _ -> },
     onCreateAccount: () -> Unit = {},
 ) {
     // State variables for text fields
@@ -37,6 +39,7 @@ fun LoginScreen(
 
     // Focus manager to dismiss keyboard
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -153,7 +156,25 @@ fun LoginScreen(
 
             // "Login" button
             Button(
-                onClick = onLogin,
+                onClick = {
+                    val email = logInEmail.trim()
+                    val password = logInPassword
+                    when {
+                        email.isEmpty() && password.isEmpty() -> {
+                            Toast.makeText(context, "Please enter email and password", Toast.LENGTH_SHORT).show()
+                            focusManager.clearFocus()
+                        }
+                        email.isEmpty() -> {
+                            Toast.makeText(context, "Please enter email", Toast.LENGTH_SHORT).show()
+                            focusManager.clearFocus()
+                        }
+                        password.isEmpty() -> {
+                            Toast.makeText(context, "Please enter password", Toast.LENGTH_SHORT).show()
+                            focusManager.clearFocus()
+                        }
+                        else -> onLogin(email, password)
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

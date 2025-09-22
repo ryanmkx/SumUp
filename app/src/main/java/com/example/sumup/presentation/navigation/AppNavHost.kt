@@ -1,6 +1,12 @@
 package com.example.sumup.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -8,6 +14,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.sumup.businessLogic.LogIn
+import com.example.sumup.businessLogic.SignUp
+import com.example.sumup.businessLogic.UpdateProfile
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.example.sumup.data.FirebaseAuthRepository
+import com.example.sumup.data.FirestoreUserProfileRepository
 import com.example.sumup.presentation.screen.login.MainScreen
 import com.example.sumup.presentation.screen.login.LoginScreen
 import com.example.sumup.presentation.screen.login.SignUpScreen
@@ -26,6 +41,7 @@ import com.example.sumup.presentation.screen.flashcard.FlashcardResultScreen
 import com.example.sumup.presentation.screen.flashcard.FlashcardStartScreen
 import com.example.sumup.presentation.screen.quiz.QuizFlashcardMainScreen
 import com.example.sumup.presentation.screen.quiz.QuizStartScreen
+import kotlinx.coroutines.launch
 
 object Routes {
     const val MAIN = "main"
@@ -75,23 +91,70 @@ fun AppNavHost(
             )
         }
         composable(Routes.LOGIN) {
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+            val signInUseCase = remember {
+                val authRepo = FirebaseAuthRepository(FirebaseAuth.getInstance())
+                val profileRepo = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
+                LogIn(authRepo, profileRepo)
+            }
+
             LoginScreen(
                 onBack = { navController.popBackStack() },
                 onForgotPassword = { /* TODO: route later */ },
-                onLogin = {
-                    // After successful login, go to SummarizeMain and clear Login from back stack
-                    navController.navigate(Routes.SUMMARIZE_MAIN) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
-                        launchSingleTop = true
+                onLogin = { email, password ->
+                    coroutineScope.launch {
+                        val result = signInUseCase.execute(email, password)
+                        if (result.isSuccess) {
+                            navController.navigate(Routes.SUMMARIZE_MAIN) {
+                                popUpTo(Routes.LOGIN) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                result.exceptionOrNull()?.message ?: "Authentication failed",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 },
                 onCreateAccount = { navController.navigate(Routes.SIGN_UP) }
             )
         }
         composable(Routes.SIGN_UP) {
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+            val signUpUseCase = remember {
+                val authRepo = FirebaseAuthRepository(FirebaseAuth.getInstance())
+                val profileRepo = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
+                SignUp(authRepo, profileRepo)
+            }
+
             SignUpScreen(
                 onBack = { navController.popBackStack() },
-                onSignUp = { /* TODO: handle sign up then navigate as needed */ },
+                onSignUp = { email, username, password ->
+                    coroutineScope.launch {
+                        val result = signUpUseCase.execute(email, username, password)
+                        if (result.isSuccess) {
+                            Toast.makeText(
+                                context,
+                                "Registered successfully!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            navController.navigate(Routes.LOGIN) {
+                                popUpTo(Routes.SIGN_UP) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                result.exceptionOrNull()?.message ?: "Registration failed",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                },
                 onAlreadyHaveAccount = {
                     // Navigate back to Login if present, otherwise navigate to it
                     val popped = navController.popBackStack(Routes.LOGIN, inclusive = false)
@@ -168,9 +231,54 @@ fun AppNavHost(
             FlashcardResultScreen()
         }
         composable(Routes.PROFILE_MAIN) {
+            //here
+            val context = LocalContext.current
+            val authRepo = remember { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
+            val profileRepo = remember { FirestoreUserProfileRepository(FirebaseFirestore.getInstance()) }
+            var userName by remember { mutableStateOf("") }
+            var email by remember { mutableStateOf("") }
+
+            LaunchedEffect(Unit) {
+                val userId = authRepo.getCurrentUserId()
+                if (userId != null) {
+                    // First try by UID document id
+                    val profileById = profileRepo.getUserProfile(userId)
+                    if (profileById.isSuccess) {
+                        val user = profileById.getOrNull()
+                        userName = user?.username ?: ""
+                        email = user?.email ?: ""
+                    } else {
+                        // Fallback: lookup by email from FirebaseAuth current user
+                        val authEmail = FirebaseAuth.getInstance().currentUser?.email
+                        if (!authEmail.isNullOrEmpty()) {
+                            val profileByEmail = profileRepo.getUserProfileByEmail(authEmail)
+                            if (profileByEmail.isSuccess) {
+                                val user = profileByEmail.getOrNull()
+                                userName = user?.username ?: ""
+                                email = user?.email ?: ""
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    profileByEmail.exceptionOrNull()?.message ?: "Profile not found",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "No email on auth user", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show()
+                }
+            }
+            //here
+
             ProfileMainScreen(
+                userName = if (userName.isNotEmpty()) userName else "",
+                email = if (email.isNotEmpty()) email else "",
                 onEditProfile = { navController.navigate(Routes.PROFILE_EDIT) },
                 onLogout = {
+                    authRepo.signOut()
                     navController.navigate(Routes.MAIN) {
                         popUpTo(Routes.MAIN) { inclusive = true }
                         launchSingleTop = true
@@ -193,10 +301,31 @@ fun AppNavHost(
             )
         }
         composable(Routes.PROFILE_EDIT) {
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+            val authRepo = remember { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
+            val profileRepo = remember { FirestoreUserProfileRepository(FirebaseFirestore.getInstance()) }
+            val updateProfileUseCase = remember { UpdateProfile(authRepo, profileRepo) }
+
             EditProfileScreen(
-                onUpdate = { _, _, _ ->
-                    // After updating, return to Profile main
-                    navController.popBackStack()
+                onUpdate = { username ->
+                    coroutineScope.launch {
+                        val result = updateProfileUseCase.execute(username)
+                        if (result.isSuccess) {
+                            Toast.makeText(
+                                context,
+                                "Profile updated successfully!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            navController.popBackStack()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                result.exceptionOrNull()?.message ?: "Update failed",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
                 },
                 onNavigateBack = { navController.popBackStack() }
             )
