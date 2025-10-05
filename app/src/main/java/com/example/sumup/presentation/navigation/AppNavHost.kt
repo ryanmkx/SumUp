@@ -45,6 +45,8 @@ import com.example.sumup.presentation.screen.flashcard.FlashcardStartScreen
 import com.example.sumup.presentation.screen.quiz.QuizFlashcardMainScreen
 import com.example.sumup.presentation.screen.quiz.QuizStartScreen
 import kotlinx.coroutines.launch
+import com.example.sumup.presentation.screen.admin.AdminAccountsScreen
+import com.example.sumup.presentation.screen.admin.AdminAccountDetailScreen
 
 object Routes {
     const val MAIN = "main"
@@ -74,6 +76,11 @@ object Routes {
 
     const val CHAT_MAIN = "chat_main"
     const val CHAT_DETAIL = "chat_detail"
+
+    // Admin
+    const val ADMIN_HOME = "admin_home"
+    const val ADMIN_ACCOUNTS = "admin_accounts"
+    const val ADMIN_ACCOUNT_DETAIL = "admin_account_detail"
 }
 
 @Composable
@@ -93,6 +100,12 @@ fun AppNavHost(
                 onRegisterClick = { navController.navigate(Routes.SIGN_UP) }
             )
         }
+        // Admin home entry (Manage Accounts)
+        composable(Routes.ADMIN_HOME) {
+            com.example.sumup.presentation.screen.admin.AdminMainScreen(
+                onManageClick = { navController.navigate(Routes.ADMIN_ACCOUNTS) }
+            )
+        }
         composable(Routes.LOGIN) {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
@@ -109,7 +122,9 @@ fun AppNavHost(
                     coroutineScope.launch {
                         val result = signInUseCase.execute(email, password)
                         if (result.isSuccess) {
-                            navController.navigate(Routes.SUMMARIZE_MAIN) {
+                            val user = result.getOrNull()
+                            val destination = if (user?.level?.lowercase() == "admin") Routes.ADMIN_HOME else Routes.SUMMARIZE_MAIN
+                            navController.navigate(destination) {
                                 popUpTo(Routes.LOGIN) { inclusive = true }
                                 launchSingleTop = true
                             }
@@ -223,6 +238,49 @@ fun AppNavHost(
         }
         composable(Routes.QUIZ_RESULT) {
             QuizResultScreen()
+        }
+        // Admin accounts list
+        composable(Routes.ADMIN_ACCOUNTS) {
+            AdminAccountsScreen(
+                onBack = { navController.popBackStack() },
+                onAccountClick = { userId, name, email, created, avatar ->
+                    val enc = { s: String -> java.net.URLEncoder.encode(s, Charsets.UTF_8.name()) }
+                    val route = Routes.ADMIN_ACCOUNT_DETAIL +
+                        "?userId=" + enc(userId) +
+                        "&name=" + enc(name) +
+                        "&email=" + enc(email) +
+                        "&created=" + enc(created) +
+                        "&avatar=" + enc(avatar ?: "")
+                    navController.navigate(route)
+                }
+            )
+        }
+        // Admin account detail with required args
+        composable(
+            route = Routes.ADMIN_ACCOUNT_DETAIL + "?userId={userId}&name={name}&email={email}&created={created}&avatar={avatar}",
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("name") { type = NavType.StringType; defaultValue = "" },
+                navArgument("email") { type = NavType.StringType; defaultValue = "" },
+                navArgument("created") { type = NavType.StringType; defaultValue = "" },
+                navArgument("avatar") { type = NavType.StringType; defaultValue = "" },
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val name = backStackEntry.arguments?.getString("name") ?: ""
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            val created = backStackEntry.arguments?.getString("created") ?: ""
+            val avatar = backStackEntry.arguments?.getString("avatar") ?: ""
+
+            AdminAccountDetailScreen(
+                userCode = userId,
+                name = name,
+                email = email,
+                createdDate = created,
+                avatarUrl = avatar.ifEmpty { null },
+                onBack = { navController.popBackStack() },
+                onDeleteAccount = { /* TODO: hook up deletion */ }
+            )
         }
         composable(Routes.FLASHCARD_START) {
             FlashcardStartScreen()
