@@ -23,8 +23,7 @@ import com.example.sumup.presentation.ui.theme.purpleMain
 
 @Composable
 fun SummarizeResultScreen(
-    summarizedText: String = "The Aurora Realise, or Northern Lights, are bands of color in the night sky. Ancient people thought these lights were dragons on fire, and even modern scientists are not sure what they are." +
-            "Nursing Practitioners make up the bulk of healthcare providers in the USA. They are very versatile and can be found in any area and healthcare setting. They practice acute care, outpatient care, and many other specialties. If required, they can serve in positions of management and leadership, conduct research on affiliated topics and matters, and serve as teachers in nursing faculties and healthcare organizations. In terms of practice, their role resembles that of doctors (Painter, n.d.). They have undergone advanced medical training in order to provide high-quality healthcare. Once a student graduates and receives the title of Nurse Practitioner, there are plenty of opportunities to follow and goals to pursue. The purpose of this case study is to identify organizations where one can work as a healthcare professional.",
+    summarizedText: String,
     onBack: () -> Unit = {},
     onFlashcard: () -> Unit = {},
     onQuiz: () -> Unit = {},
@@ -74,7 +73,7 @@ fun SummarizeResultScreen(
                                 .padding(16.dp)
                         ) {
                             Text(
-                                text = summarizedText,
+                                text = if (summarizedText.isEmpty()) "No summary available. Debug: '$summarizedText'" else summarizedText,
                                 fontSize = 16.sp,
                                 lineHeight = 22.sp,
                                 color = Color.Black,
@@ -117,7 +116,7 @@ fun SummarizeResultScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = { /* TODO */ },
+                    onClick = { onFlashcard() },
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp, max = 60.dp),
@@ -135,7 +134,7 @@ fun SummarizeResultScreen(
                 }
 
                 Button(
-                    onClick = { /* TODO */ },
+                    onClick = { onQuiz() },
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp, max = 60.dp),
@@ -156,8 +155,8 @@ fun SummarizeResultScreen(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun SummarizeResultScreenPreview() {
-    SummarizeResultScreen()
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun SummarizeResultScreenPreview() {
+//    SummarizeResultScreen()
+//}

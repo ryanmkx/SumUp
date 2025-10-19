@@ -195,7 +195,7 @@ fun EditProfileScreen(
                 },
                 modifier = Modifier
                     .width(330.dp)
-                    .height(56.dp)
+                    .height(60.dp)
                 ,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = lightPurpleMain,

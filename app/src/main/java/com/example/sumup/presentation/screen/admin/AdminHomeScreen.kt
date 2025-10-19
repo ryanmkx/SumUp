@@ -19,7 +19,8 @@ import com.example.sumup.R
 @Composable
 fun AdminMainScreen(
     onManageClick: () -> Unit,
-) {
+    onLogout: () -> Unit = {},
+    ) {
     val purpleMain = Color(0xFF7676FF)
 
     Column(
@@ -44,7 +45,7 @@ fun AdminMainScreen(
         // Subtitle
         Text(
             text = "Welcome back boss",
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             color = Color.Black,
             textAlign = TextAlign.Center
         )
@@ -68,6 +69,17 @@ fun AdminMainScreen(
             ) {
                 Text("Manage User Accounts", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.SemiBold)
             }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+
+        TextButton(onClick = onLogout) {
+            Text(
+                text = "Log Out",
+                color = Color.Red,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
