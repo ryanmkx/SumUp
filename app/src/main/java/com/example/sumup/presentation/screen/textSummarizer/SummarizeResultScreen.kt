@@ -23,7 +23,7 @@ import com.example.sumup.presentation.ui.theme.purpleMain
 
 @Composable
 fun SummarizeResultScreen(
-    summarizedText: String,
+    summarizedText: String = "",
     onBack: () -> Unit = {},
     onFlashcard: () -> Unit = {},
     onQuiz: () -> Unit = {},

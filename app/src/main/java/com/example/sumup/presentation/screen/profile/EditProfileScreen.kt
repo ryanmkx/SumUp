@@ -12,7 +12,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,11 +36,12 @@ import com.example.sumup.presentation.screen.common.HeaderWithBack
 import com.example.sumup.presentation.ui.theme.lightPurpleMain
 import com.example.sumup.presentation.ui.theme.purpleMain
 import coil.compose.AsyncImage
-import com.example.sumup.data.repository.FirebaseAuthRepository
-import com.example.sumup.data.repository.FirestoreUserProfileRepository
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sumup.businessLogic.DependencyModule
+import com.example.sumup.presentation.viewModel.EditProfileViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditProfileScreen(
     onUpdate: (String) -> Unit = { _ -> },
@@ -45,37 +49,40 @@ fun EditProfileScreen(
 ) {
     var name by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var selectedStatus by remember { mutableStateOf("active") }
+    var expanded by remember { mutableStateOf(false) }
     
     // Validation states
     var nameError by remember { mutableStateOf("") }
     
     val context = LocalContext.current
     
+    // Use ViewModel instead of direct repository access - follows 3-layer architecture
+    val viewModel: EditProfileViewModel = viewModel { DependencyModule.createEditProfileViewModel() }
+    
+    // Collect state from ViewModel
+    val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    
     // Load user data when screen is first displayed
     LaunchedEffect(Unit) {
-        try {
-            // Import the necessary classes
-            val authRepo = FirebaseAuthRepository(FirebaseAuth.getInstance())
-            val profileRepo = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
-            
-            val userId = authRepo.getCurrentUserId()
-            if (userId != null) {
-                val profileResult = profileRepo.getUserProfile(userId)
-                if (profileResult.isSuccess) {
-                    val user = profileResult.getOrNull()
-                    name = user?.username ?: ""
-                    println("DEBUG: Loaded username: '$name'")
-                } else {
-                    println("DEBUG: Failed to load profile: ${profileResult.exceptionOrNull()?.message}")
-                }
-            } else {
-                println("DEBUG: No user ID found")
-            }
-        } catch (e: Exception) {
-            println("DEBUG: Exception loading user data: ${e.message}")
-        } finally {
-            isLoading = false
+        viewModel.loadUserProfile()
+    }
+    
+    // Update name and status when profile loads
+    LaunchedEffect(userProfile) {
+        userProfile?.let { profile ->
+            name = profile.username
+            selectedStatus = profile.status
+        }
+    }
+    
+    // Handle error messages
+    LaunchedEffect(error) {
+        error?.let { errorMsg ->
+            Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
         }
     }
     
@@ -195,7 +202,7 @@ fun EditProfileScreen(
                 },
                 modifier = Modifier
                     .width(330.dp)
-                    .height(60.dp)
+                    .height(65.dp)
                 ,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = lightPurpleMain,
@@ -216,7 +223,80 @@ fun EditProfileScreen(
                 maxLines = 1
             )
 
-            Spacer(modifier = Modifier.height(100.dp))
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Account Status Dropdown
+            Text(
+                text = "Account Status",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = purpleMain,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.width(330.dp)
+            ) {
+                OutlinedTextField(
+                    value = selectedStatus.replaceFirstChar { it.uppercase() },
+                    onValueChange = { },
+                    readOnly = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .width(330.dp)
+                        .height(65.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = lightPurpleMain,
+                        unfocusedContainerColor = lightPurpleMain,
+                        focusedBorderColor = purpleMain,
+                        unfocusedBorderColor = Color.White,
+                        focusedLabelColor = purpleMain,
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    label = { Text("Select Status") }
+                )
+
+                ExposedDropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Active") },
+                        onClick = {
+                            selectedStatus = "active"
+                            expanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Sleep") },
+                        onClick = {
+                            selectedStatus = "sleep"
+                            expanded = false
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Status Description
+            Text(
+                text = when (selectedStatus) {
+                    "active" -> "Others can add you as a friend"
+                    "sleep" -> "Others cannot add you as a friend"
+                    else -> ""
+                },
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(60.dp))
 
             // Update Button
             Button(
@@ -225,6 +305,8 @@ fun EditProfileScreen(
                     nameError = validateName(name)
                     
                     if (nameError.isEmpty()) {
+                        // Use ViewModel to update profile - follows 3-layer architecture
+                        viewModel.updateProfile(name, selectedStatus)
                         Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
                         onUpdate(name)
                     } else {

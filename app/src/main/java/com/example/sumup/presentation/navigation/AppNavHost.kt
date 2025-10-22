@@ -21,11 +21,14 @@ import com.example.sumup.businessLogic.SignUp
 import com.example.sumup.businessLogic.UpdateProfile
 import com.example.sumup.presentation.viewModel.HistoryViewModel
 import com.example.sumup.businessLogic.GetUserSummaries
+import com.example.sumup.businessLogic.DependencyModule
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.database.FirebaseDatabase
 import com.example.sumup.data.repository.FirebaseAuthRepository
 import com.example.sumup.data.repository.FirestoreUserProfileRepository
 import com.example.sumup.data.repository.FirestoreSummaryRepository
+import com.example.sumup.data.repository.FirebaseChatRepository
 import com.example.sumup.presentation.screen.login.MainScreen
 import com.example.sumup.presentation.screen.login.LoginScreen
 import com.example.sumup.presentation.screen.login.SignUpScreen
@@ -37,6 +40,8 @@ import com.example.sumup.presentation.screen.history.HistoryMainScreen
 import com.example.sumup.presentation.screen.history.HistoryDetailScreen
 import com.example.sumup.presentation.screen.chat.ChatMainScreen
 import com.example.sumup.presentation.screen.chat.ChatDetailScreen
+import com.example.sumup.presentation.screen.chat.AddFriendScreen
+import com.example.sumup.presentation.screen.chat.FriendRequestScreen
 import com.example.sumup.presentation.screen.quiz.QuizQuestionScreen
 import com.example.sumup.presentation.screen.quiz.QuizResultScreen
 import com.example.sumup.presentation.screen.flashcard.FlashcardCardScreen
@@ -47,6 +52,7 @@ import com.example.sumup.presentation.screen.quiz.QuizStartScreen
 import kotlinx.coroutines.launch
 import com.example.sumup.presentation.screen.admin.AdminAccountsScreen
 import com.example.sumup.presentation.screen.admin.AdminAccountDetailScreen
+import kotlinx.coroutines.tasks.await
 
 object Routes {
     const val MAIN = "main"
@@ -76,6 +82,8 @@ object Routes {
 
     const val CHAT_MAIN = "chat_main"
     const val CHAT_DETAIL = "chat_detail"
+    const val ADD_FRIEND = "add_friend"
+    const val FRIEND_REQUESTS = "friend_requests"
 
     // Admin
     const val ADMIN_HOME = "admin_home"
@@ -109,11 +117,8 @@ fun AppNavHost(
         composable(Routes.LOGIN) {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
-            val signInUseCase = remember {
-                val authRepo: FirebaseAuthRepository = FirebaseAuthRepository(FirebaseAuth.getInstance())
-                val profileRepo: FirestoreUserProfileRepository = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
-                LogIn(authRepo, profileRepo)
-            }
+            // Use dependency injection instead of creating repositories directly
+            val signInUseCase = remember { DependencyModule.logInUseCase }
 
             LoginScreen(
                 onBack = { navController.popBackStack() },
@@ -143,11 +148,8 @@ fun AppNavHost(
         composable(Routes.SIGN_UP) {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
-            val signUpUseCase = remember {
-                val authRepo: FirebaseAuthRepository = FirebaseAuthRepository(FirebaseAuth.getInstance())
-                val profileRepo: FirestoreUserProfileRepository = FirestoreUserProfileRepository(FirebaseFirestore.getInstance())
-                SignUp(authRepo, profileRepo)
-            }
+            // Use dependency injection instead of creating repositories directly
+            val signUpUseCase = remember { DependencyModule.signUpUseCase }
 
             SignUpScreen(
                 onBack = { navController.popBackStack() },
@@ -292,47 +294,27 @@ fun AppNavHost(
             FlashcardResultScreen()
         }
         composable(Routes.PROFILE_MAIN) {
-            //here
             val context = LocalContext.current
-            val authRepo = remember { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
-            val profileRepo = remember { FirestoreUserProfileRepository(FirebaseFirestore.getInstance()) }
+            // Use dependency injection instead of creating repositories directly
+            val authRepo = remember { DependencyModule.userAuthRepository }
+            val getUserProfileUseCase = remember { DependencyModule.getUserProfileUseCase }
             var userName by remember { mutableStateOf("") }
             var email by remember { mutableStateOf("") }
 
             LaunchedEffect(Unit) {
-                val userId = authRepo.getCurrentUserId()
-                if (userId != null) {
-                    // First try by UID document id
-                    val profileById = profileRepo.getUserProfile(userId)
-                    if (profileById.isSuccess) {
-                        val user = profileById.getOrNull()
-                        userName = user?.username ?: ""
-                        email = user?.email ?: ""
-                    } else {
-                        // Fallback: lookup by email from FirebaseAuth current user
-                        val authEmail = FirebaseAuth.getInstance().currentUser?.email
-                        if (!authEmail.isNullOrEmpty()) {
-                            val profileByEmail = profileRepo.getUserProfileByEmail(authEmail)
-                            if (profileByEmail.isSuccess) {
-                                val user = profileByEmail.getOrNull()
-                                userName = user?.username ?: ""
-                                email = user?.email ?: ""
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    profileByEmail.exceptionOrNull()?.message ?: "Profile not found",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        } else {
-                            Toast.makeText(context, "No email on auth user", Toast.LENGTH_SHORT).show()
-                        }
+                getUserProfileUseCase.execute()
+                    .onSuccess { user ->
+                        userName = user.username
+                        email = user.email
                     }
-                } else {
-                    Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show()
-                }
+                    .onFailure { exception ->
+                        Toast.makeText(
+                            context,
+                            exception.message ?: "Failed to load profile",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
             }
-            //here
 
             ProfileMainScreen(
                 userName = if (userName.isNotEmpty()) userName else "",
@@ -364,37 +346,26 @@ fun AppNavHost(
         composable(Routes.PROFILE_EDIT) {
             val context = LocalContext.current
             val coroutineScope = rememberCoroutineScope()
-            val authRepo = remember { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
-            val profileRepo = remember { FirestoreUserProfileRepository(FirebaseFirestore.getInstance()) }
-            val updateProfileUseCase = remember { UpdateProfile(authRepo, profileRepo) }
+            // Use dependency injection instead of creating repositories directly
+            val updateProfileUseCase = remember { DependencyModule.updateProfileUseCase }
 
             EditProfileScreen(
                 onUpdate = { username ->
-                    coroutineScope.launch {
-                        val result = updateProfileUseCase.execute(username)
-                        if (result.isSuccess) {
-                            Toast.makeText(
-                                context,
-                                "Profile updated successfully!",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            navController.popBackStack()
-                        } else {
-                            Toast.makeText(
-                                context,
-                                result.exceptionOrNull()?.message ?: "Update failed",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
+                    // The profile has already been updated inside EditProfileScreen via its ViewModel.
+                    // Avoid triggering a second update here that would reset status to default.
+                    Toast.makeText(
+                        context,
+                        "Profile updated successfully!",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    navController.popBackStack()
                 },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Routes.HISTORY_MAIN) {
-            val authRepo = remember { FirebaseAuthRepository(FirebaseAuth.getInstance()) }
-            val summaryRepo = remember { FirestoreSummaryRepository(FirebaseFirestore.getInstance()) }
-            val historyViewModel = remember { HistoryViewModel(authRepo, summaryRepo) }
+            // Use dependency injection instead of creating repositories directly
+            val historyViewModel = remember { DependencyModule.createHistoryViewModel() }
             
             HistoryMainScreen(
                 viewModel = historyViewModel,
@@ -437,7 +408,159 @@ fun AppNavHost(
             )
         }
         composable(Routes.CHAT_MAIN) {
+            // Load chat rooms that include the current user and map to UI items
+            var friendsUi by remember { mutableStateOf<List<com.example.sumup.presentation.screen.chat.ChatFriend>>(emptyList()) }
+            var unreadCounts by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+            var userName by remember { mutableStateOf("User") } // Current user's name
+            // Use dependency injection instead of creating repositories directly
+            val chatRepo = remember { DependencyModule.chatRepository }
+            val getUserProfileUseCase = remember { DependencyModule.getUserProfileUseCase }
+            val context = LocalContext.current
+            
+            // Load current user's name
+            LaunchedEffect(Unit) {
+                getUserProfileUseCase.execute()
+                    .onSuccess { user ->
+                        userName = user.username
+                    }
+                    .onFailure { exception ->
+                        println("Failed to load user profile: ${exception.message}")
+                        userName = "User" // fallback
+                    }
+            }
+            
+            LaunchedEffect(Unit) {
+                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                if (currentUserId != null) {
+                    try {
+                        // Use Firebase Realtime Database (not Firestore) for chat rooms
+                        val realtimeDb = FirebaseDatabase.getInstance("https://sumup-31d9b-default-rtdb.asia-southeast1.firebasedatabase.app")
+                        val chatRoomsRef = realtimeDb.reference.child("chatRooms")
+                        
+                        // Get all chat rooms
+                        val snapshot = chatRoomsRef.get().await()
+                        val roomUsers = mutableListOf<com.example.sumup.presentation.screen.chat.ChatFriend>()
+                        
+                        for (roomSnapshot in snapshot.children) {
+                            val participants = roomSnapshot.child("participants").getValue(object : com.google.firebase.database.GenericTypeIndicator<List<String>>() {})
+                            
+                            if (participants != null && participants.contains(currentUserId)) {
+                                val otherUserId = participants.firstOrNull { it != currentUserId }
+                                if (otherUserId != null) {
+                                    // Get user info from Firestore
+                                    val firestoreDb = FirebaseFirestore.getInstance()
+                                    val otherDoc = firestoreDb.collection("Users").document(otherUserId).get().await()
+                                    val otherName = otherDoc.getString("username") ?: "Unknown"
+                                    
+                                    // Get last message and time from Realtime Database
+                                    val lastMessage = roomSnapshot.child("lastMessage").getValue(String::class.java) ?: "No messages yet"
+                                    val lastMessageTime = roomSnapshot.child("lastMessageTime").getValue(Long::class.java) ?: 0L
+                                    
+                                    // Format the time
+                                    val formattedTime = if (lastMessageTime > 0) {
+                                        val date = java.util.Date(lastMessageTime)
+                                        val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                                        formatter.format(date)
+                                    } else {
+                                        ""
+                                    }
+                                    
+                                    roomUsers.add(
+                                        com.example.sumup.presentation.screen.chat.ChatFriend(
+                                            name = otherName,
+                                            lastMessage = lastMessage,
+                                            lastMessageTime = formattedTime,
+                                            hasUnreadMessage = false,
+                                            userId = otherUserId
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        friendsUi = roomUsers
+                    } catch (e: Exception) {
+                        println("Error loading chat rooms: ${e.message}")
+                        friendsUi = emptyList()
+                    }
+                } else {
+                    friendsUi = emptyList()
+                }
+            }
+            
+            // Load unread message counts (dot logic: dot visible if count > 0)
+            LaunchedEffect(Unit) {
+                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                if (currentUserId != null) {
+                    try {
+                        chatRepo.getUnreadMessageCount(currentUserId).collect { counts ->
+                            // Defensive: filter out zero or negative values
+                            unreadCounts = counts.filterValues { it > 0 }
+                            
+                            // Update friendsUi to reflect unread status
+                            friendsUi = friendsUi.map { friend ->
+                                val hasUnread = unreadCounts.containsKey(friend.userId)
+                                friend.copy(hasUnreadMessage = hasUnread)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("Error loading unread counts: ${e.message}")
+                    }
+                }
+            }
+
+            // One-shot listener for unseen messages -> show local notification
+            LaunchedEffect(Unit) {
+                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                if (currentUserId != null) {
+                    val db = FirebaseDatabase.getInstance("https://sumup-31d9b-default-rtdb.asia-southeast1.firebasedatabase.app")
+                    val seenStore = context.getSharedPreferences("seen_messages", android.content.Context.MODE_PRIVATE)
+                    val ref = db.reference.child("messages")
+                    val listener = object : com.google.firebase.database.ValueEventListener {
+                        override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                            for (child in snapshot.children) {
+                                val msg = child.getValue(com.example.sumup.data.model.Message::class.java)
+                                if (msg != null && msg.receiverId == currentUserId && !msg.isRead) {
+                                    val key = msg.messageId
+                                    if (!seenStore.getBoolean(key, false)) {
+                                        // show notification only once
+                                        val otherId = msg.senderId
+                                        val sorted = listOf(currentUserId, otherId).sorted()
+                                        val roomId = "${sorted[0]}_${sorted[1]}"
+                                        com.example.sumup.util.NotificationHelper.showMessageNotification(
+                                            context,
+                                            senderName = friendsUi.firstOrNull { it.userId == otherId }?.name ?: "New message",
+                                            messageContent = msg.content,
+                                            chatRoomId = roomId,
+                                            notificationId = key.hashCode()
+                                        )
+                                        seenStore.edit().putBoolean(key, true).apply()
+                                    }
+                                }
+                            }
+                        }
+                        override fun onCancelled(error: com.google.firebase.database.DatabaseError) { }
+                    }
+                    ref.orderByChild("receiverId").equalTo(currentUserId).addValueEventListener(listener)
+                }
+            }
+
             ChatMainScreen(
+                userName = userName, // Pass the current user's name
+                onChatClick = { friendName ->
+                    // Find the friend data to get the friendId
+                    val friend = friendsUi.find { it.name == friendName }
+                    if (friend != null) {
+                        navController.navigate("${Routes.CHAT_DETAIL}/${friendName}/${friend.userId}")
+                    }
+                },
+                onAddFriendClick = {
+                    navController.navigate(Routes.ADD_FRIEND)
+                },
+                onNotificationClick = {
+                    navController.navigate(Routes.FRIEND_REQUESTS)
+                },
+                friends = friendsUi,
+                unreadCounts = unreadCounts,
                 onFooterNavigate = { dest ->
                     when (dest) {
                         com.example.sumup.presentation.screen.common.FooterNavigation.Quiz ->
@@ -454,8 +577,47 @@ fun AppNavHost(
                 }
             )
         }
-        composable(Routes.CHAT_DETAIL) {
-            ChatDetailScreen()
+        composable(Routes.ADD_FRIEND) {
+            AddFriendScreen(
+                onBack = { navController.popBackStack() },
+                onAddFriend = { userId ->
+                    // TODO: Implement actual friend adding logic here
+                    // For now, just show a toast and go back
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(Routes.FRIEND_REQUESTS) {
+            FriendRequestScreen(
+                onBack = { navController.popBackStack() },
+                onAcceptRequest = { userId ->
+                    // TODO: Implement actual friend request acceptance logic here
+                    // For now, just go back
+                    navController.popBackStack()
+                },
+                onDeclineRequest = { userId ->
+                    // TODO: Implement actual friend request decline logic here
+                    // For now, just go back
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(
+            route = "${Routes.CHAT_DETAIL}/{friendName}/{friendId}",
+            arguments = listOf(
+                navArgument("friendName") { type = NavType.StringType },
+                navArgument("friendId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val friendName = backStackEntry.arguments?.getString("friendName") ?: ""
+            val friendId = backStackEntry.arguments?.getString("friendId") ?: ""
+            
+            ChatDetailScreen(
+                friendName = friendName,
+                friendId = friendId,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

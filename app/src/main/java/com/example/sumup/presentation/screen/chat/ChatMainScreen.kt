@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,8 +29,13 @@ import com.example.sumup.presentation.ui.theme.purpleMain
 
 @Composable
 fun ChatMainScreen(
+    userName: String = "User", // current logged-in user's name
     onChatClick: (String) -> Unit = {}, // callback when user clicks on chat
-    onFooterNavigate: (FooterNavigation) -> Unit = {}
+    onFooterNavigate: (FooterNavigation) -> Unit = {},
+    onAddFriendClick: () -> Unit = {}, // callback when user clicks add friend button
+    onNotificationClick: () -> Unit = {}, // callback when user clicks notification icon
+    friends: List<ChatFriend> = emptyList(), // list of friends to display
+    unreadCounts: Map<String, Int> = emptyMap() // unread message counts per friend
 ) {
     Scaffold(
         topBar = {
@@ -40,6 +48,18 @@ fun ChatMainScreen(
                 currentRoute = FooterNavigation.Chat,
                 onNavigate = onFooterNavigate
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddFriendClick,
+                containerColor = purpleMain,
+                contentColor = Color.White
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Friend"
+                )
+            }
         }
     ) { innerPadding ->
         Column(
@@ -49,47 +69,68 @@ fun ChatMainScreen(
                 .padding(16.dp)
         ) {
             // Greeting
-            Text(
-                text = "Hello,",
-                fontSize = 20.sp,
-                color = purpleMain
-            )
-            Text(
-                text = "Elon Musk",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Hello,",
+                        fontSize = 20.sp,
+                        color = purpleMain
+                    )
+                    Text(
+                        text = userName,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+                
+                // Notification icon
+                IconButton(
+                    onClick = onNotificationClick,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(purpleMain.copy(alpha = 0.1f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Friend Requests",
+                        tint = purpleMain,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
 
             // Chat list
-            ChatItem(
-                imageRes = R.drawable.ic_launcher_foreground,
-                name = "Johson",
-                message = "Thks bro",
-                time = "08:12 AM",
-                onClick = { onChatClick("Johson") }
-            )
-            Spacer(modifier = Modifier.height(15.dp))
-
-            ChatItem(
-                imageRes = R.drawable.ic_launcher_foreground,
-                name = "Hong cheng",
-                message = "Hey man, how are you",
-                time = "12:12 PM",
-                onClick = { onChatClick("Hong cheng") }
-            )
-            Spacer(modifier = Modifier.height(15.dp))
-
-            ChatItem(
-                imageRes = R.drawable.ic_launcher_foreground,
-                name = "Bryan Meow",
-                message = "Just want to ask you, do you bruiwqqwuohwuohuoqwhouheeqwwqewq",
-                time = "",
-                hasMessage = true,
-                onClick = { onChatClick("Bryan Meow") }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
+            if (friends.isNotEmpty()) {
+                friends.forEach { friend ->
+                    val unreadCount = unreadCounts[friend.userId] ?: 0
+                    ChatItem(
+                        imageRes = friend.imageRes,
+                        name = friend.name,
+                        message = friend.lastMessage,
+                        time = friend.lastMessageTime,
+                        hasMessage = unreadCount > 0,
+                        unreadCount = unreadCount,
+                        onClick = { onChatClick(friend.name) }
+                    )
+                    Spacer(modifier = Modifier.height(15.dp))
+                }
+            } else {
+                // Default chat items when no friends are added yet
+                Text(
+                    text = "Add New Friends to Have Chat!",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             // Bottom text
             Text(
@@ -111,6 +152,7 @@ fun ChatItem(
     message: String,
     time: String,
     hasMessage: Boolean = false,
+    unreadCount: Int = 0,
     onClick: () -> Unit = {} // new parameter
 ) {
     Card(
@@ -157,13 +199,13 @@ fun ChatItem(
                 )
             }
 
-            // Time or unread indicator
+            // Time or unread indicator (dot only, no number)
             if (hasMessage) {
                 Box(
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(12.dp)
                         .clip(CircleShape)
-                        .background(purpleMain) // purple indicator
+                        .background(purpleMain)
                 )
             } else {
                 Text(
@@ -176,12 +218,41 @@ fun ChatItem(
     }
 }
 
+data class ChatFriend(
+    val name: String,
+    val lastMessage: String,
+    val lastMessageTime: String,
+    val hasUnreadMessage: Boolean = false,
+    val imageRes: Int = R.drawable.ic_launcher_foreground,
+    val userId: String = "" // Add userId for navigation
+)
+
 @Preview(showBackground = true)
 @Composable
 fun ChatMainScreenPreview() {
     ChatMainScreen(
+        userName = "John Doe", // Preview with sample user name
         onChatClick = { name ->
             println("Clicked on chat: $name")
-        }
+        },
+        onAddFriendClick = {
+            println("Add friend clicked")
+        },
+        onNotificationClick = {
+            println("Notification clicked")
+        },
+        friends = listOf(
+            ChatFriend(
+                name = "John Doe",
+                lastMessage = "Hey! How are you?",
+                lastMessageTime = "2:30 PM",
+                hasUnreadMessage = true
+            ),
+            ChatFriend(
+                name = "Jane Smith",
+                lastMessage = "Thanks for the help!",
+                lastMessageTime = "1:15 PM"
+            )
+        )
     )
 }

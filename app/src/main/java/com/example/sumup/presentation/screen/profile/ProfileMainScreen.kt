@@ -28,7 +28,6 @@ import com.example.sumup.presentation.screen.common.Header
 fun ProfileMainScreen(
     userName: String = "",
     email: String = "",
-    passwordMasked: String = "***********",
     onEditProfile: () -> Unit = {},
     onLogout: () -> Unit = {},
     onChangePassword: () -> Unit = {},
@@ -123,7 +122,7 @@ fun ProfileMainScreen(
                     elevation = ButtonDefaults.buttonElevation(4.dp)
                 ) {
                     Text(
-                        text = "Edit Username",
+                        text = "Edit Profile",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold

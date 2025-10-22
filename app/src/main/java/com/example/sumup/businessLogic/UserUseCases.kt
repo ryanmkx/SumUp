@@ -11,7 +11,8 @@ data class User(
     val username: String,
     val email: String,
     val profilePic: String,
-    val level: String
+    val level: String,
+    val status: String = "active"
 )
 
 class LogIn(
@@ -30,7 +31,8 @@ class LogIn(
                         username = userProfile.username,
                         email = userProfile.email,
                         profilePic = userProfile.profilePic,
-                        level = userProfile.level
+                        level = userProfile.level,
+                        status = userProfile.status
                     )
                 )
             } else {
@@ -56,10 +58,7 @@ class SignUp(
 ) {
     suspend fun execute(email: String, username: String, password: String): Result<User> {
         return try {
-            // Create user account with Firebase Auth
             val userId = authRepo.signUpWithEmail(email, password).getOrThrow()
-            
-            // Create user profile in Firestore
             val userProfile = Users(
                 userId = userId,
                 username = username,
@@ -68,16 +67,15 @@ class SignUp(
                 level = "user",
                 createdAt = Timestamp.now()
             )
-            
-            profileRepo.createUserProfile(userProfile).getOrThrow()
-            
+            profileRepo.createUserProfile(userProfile)
             Result.success(
                 User(
                     userId = userId,
                     username = username,
                     email = email,
                     profilePic = "",
-                    level = "user"
+                    level = "user",
+                    status = "active"
                 )
             )
         } catch (e: Exception) {
@@ -90,30 +88,105 @@ class UpdateProfile(
     private val authRepo: UserAuthRepository,
     private val profileRepo: UserProfileRepository
 ) {
-    suspend fun execute(username: String): Result<User> {
+    suspend fun execute(username: String, status: String = "active"): Result<User> {
         return try {
             val userId = authRepo.getCurrentUserId()
                 ?: return Result.failure(Exception("User not authenticated"))
             
-            // Get current user profile to preserve existing data
-            val currentProfile = profileRepo.getUserProfile(userId).getOrThrow()
-            
-            // Update the profile with new username
-            val updatedProfile = currentProfile.copy(
-                username = username
-            )
-            
-            profileRepo.updateUserProfile(updatedProfile).getOrThrow()
-            
-            Result.success(
-                User(
-                    userId = userId,
+            val profileResult = profileRepo.getUserProfile(userId)
+            if (profileResult.isSuccess) {
+                val userProfile = profileResult.getOrNull()!!
+                val updatedProfile = userProfile.copy(
+                    userId = userProfile.userId,
                     username = username,
-                    email = currentProfile.email,
-                    profilePic = currentProfile.profilePic,
-                    level = currentProfile.level
+                    email = userProfile.email,
+                    profilePic = userProfile.profilePic,
+                    level = userProfile.level,
+                    status = status,
+                    friends = userProfile.friends,
+                    friendsRequest = userProfile.friendsRequest,
+                    createdAt = userProfile.createdAt
                 )
-            )
+                
+                profileRepo.updateUserProfile(updatedProfile)
+                
+                Result.success(
+                    User(
+                        userId = userProfile.userId,
+                        username = username,
+                        email = userProfile.email,
+                        profilePic = userProfile.profilePic,
+                        level = userProfile.level,
+                        status = status
+                    )
+                )
+            } else {
+                Result.failure(Exception("Failed to load user profile"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+class GetFriendRequests(
+    private val authRepo: UserAuthRepository,
+    private val profileRepo: UserProfileRepository
+) {
+    suspend fun execute(): Result<List<Users>> {
+        return try {
+            val userId = authRepo.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            
+            profileRepo.getFriendRequests(userId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+class AcceptFriendRequest(
+    private val authRepo: UserAuthRepository,
+    private val profileRepo: UserProfileRepository
+) {
+    suspend fun execute(friendUserId: String): Result<Unit> {
+        return try {
+            val userId = authRepo.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            
+            profileRepo.acceptFriendRequest(userId, friendUserId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+class DeclineFriendRequest(
+    private val authRepo: UserAuthRepository,
+    private val profileRepo: UserProfileRepository
+) {
+    suspend fun execute(friendUserId: String): Result<Unit> {
+        return try {
+            val userId = authRepo.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            
+            profileRepo.declineFriendRequest(userId, friendUserId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+class GetUserProfile(
+    private val authRepo: UserAuthRepository,
+    private val profileRepo: UserProfileRepository
+) {
+    suspend fun execute(): Result<Users> {
+        return try {
+            val userId = authRepo.getCurrentUserId()
+                ?: return Result.failure(Exception("User not authenticated"))
+            
+            profileRepo.getUserProfile(userId)
         } catch (e: Exception) {
             Result.failure(e)
         }

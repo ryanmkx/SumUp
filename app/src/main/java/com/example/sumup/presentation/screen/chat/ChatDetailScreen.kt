@@ -1,176 +1,272 @@
 package com.example.sumup.presentation.screen.chat
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.sumup.R
-import com.example.sumup.presentation.screen.common.HeaderWithBackAndPic
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sumup.data.model.Message
+import com.example.sumup.businessLogic.DependencyModule
+import com.example.sumup.presentation.screen.common.HeaderWithBack
 import com.example.sumup.presentation.ui.theme.purpleMain
+import com.example.sumup.presentation.viewModel.ChatViewModel
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import java.text.SimpleDateFormat
+import java.util.*
 
-data class ChatMessage(
-    val text: String,
-    val time: String,
-    val isSent: Boolean, // true = my message, false = received
-    val seen: Boolean = false // ✅ new property for ticks
-)
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailScreen(
-    userName: String = "Johson",
-    userImage: Int = R.drawable.profile_pic,
+    friendName: String,
+    friendId: String,
     onBack: () -> Unit = {}
 ) {
-    var message by remember { mutableStateOf(TextFieldValue("")) }
-
-    val messages = remember {
-        mutableStateListOf(
-            ChatMessage("Hi man, how are you doing?", "08:12 AM", false),
-            ChatMessage("Hey brooo, good good good", "08:13 AM", true, seen = true),
-            ChatMessage("Cool, talk later!", "08:15 AM", true, seen = false)
-        )
+    var messageText by remember { mutableStateOf("") }
+    
+    // Use ViewModel instead of direct repository access - follows 3-layer architecture
+    val viewModel: ChatViewModel = viewModel { DependencyModule.createChatViewModel() }
+    
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    
+    // Create chat room ID
+    val chatRoomId = remember {
+        if (currentUserId != null) {
+            val sortedIds = listOf(currentUserId, friendId).sorted()
+            "${sortedIds[0]}_${sortedIds[1]}"
+        } else ""
     }
-
+    
+    // Collect state from ViewModel
+    val messages by viewModel.messages.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    
+    // Initialize chat room and load messages
+    LaunchedEffect(chatRoomId) {
+        if (chatRoomId.isNotEmpty() && currentUserId != null) {
+            viewModel.createChatRoom(friendId)
+            viewModel.getMessages(chatRoomId)
+        }
+    }
+    
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+    
+    // Mark messages from this friend as read whenever the list updates while this screen is open
+    LaunchedEffect(messages.size) {
+        if (chatRoomId.isNotEmpty() && currentUserId != null) {
+            messages.forEach { message ->
+                if (message.senderId == friendId && !message.isRead) {
+                    viewModel.markMessageAsRead(message.messageId, chatRoomId)
+                }
+            }
+        }
+    }
+    
     Scaffold(
         topBar = {
-            HeaderWithBackAndPic(
-                title = userName,
+            HeaderWithBack(
                 onNavigateBack = onBack,
-                profileImageRes = userImage
+                title = friendName
             )
         }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // ✅ Transparent background wallpaper
-            Image(
-                painter = painterResource(id = R.drawable.chat_background),
-                contentDescription = "Chat Background",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                alpha = 0.3f
-            )
-
-            // ✅ Messages
+            // Messages list
             LazyColumn(
+                state = listState,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp),
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                reverseLayout = true
+                contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                items(messages.reversed()) { msg ->
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = if (msg.isSent) Alignment.End else Alignment.Start
-                    ) {
+                items(messages) { message ->
+                    MessageItem(
+                        message = message,
+                        isFromCurrentUser = message.senderId == currentUserId
+                    )
+                }
+                
+                if (messages.isEmpty()) {
+                    item {
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(
-                                    if (msg.isSent) purpleMain.copy(alpha = 0.9f)   // ✅ My messages = purple bubble
-                                    else Color(0xFFF2F2F7).copy(alpha = 0.9f)       // ✅ Others = soft gray bubble
-                                )
-                                .padding(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = msg.text,
-                                color = if (msg.isSent) Color.White else Color.Black, // ✅ White text on purple, black on gray
-                                fontSize = 15.sp
+                                text = "Start a conversation with $friendName!",
+                                color = Color.Gray,
+                                fontSize = 16.sp,
+                                textAlign = TextAlign.Center
                             )
-                        }
-
-                        // ✅ Time + Tick Row
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
-                        ) {
-                            Text(
-                                text = msg.time,
-                                fontSize = 10.sp,
-                                color = Color.Gray
-                            )
-
-                            if (msg.isSent) {
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = if (msg.seen) "✓✓" else "✓",
-                                    fontSize = 10.sp,
-                                    color = if (msg.seen) Color(0xFF1DA1F2) else Color.Gray // ✅ blue if seen
-                                )
-                            }
                         }
                     }
                 }
             }
-
-            // ✅ Floating Input Bar
+            
+            // Message input
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(12.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.05f)) // translucent floating bar
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .fillMaxWidth()
+                    .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
-                    value = message,
-                    onValueChange = { message = it },
+                    value = messageText,
+                    onValueChange = { messageText = it },
+                    placeholder = { Text("Type a message...") },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Type a message...", color = Color.Gray) },
-                    shape = RoundedCornerShape(16.dp),
                     singleLine = true,
-                    colors = TextFieldDefaults.colors( // ✅ Material3 version
-                        focusedContainerColor = Color.White.copy(alpha = 0.6f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.6f),
-                        disabledContainerColor = Color.White.copy(alpha = 0.3f),
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent,
-                        cursorColor = purpleMain
-                    )
+                    shape = RoundedCornerShape(24.dp)
                 )
-                IconButton(
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                FloatingActionButton(
                     onClick = {
-                        if (message.text.isNotBlank()) {
-                            messages.add(ChatMessage(message.text, "Now", true, seen = false))
-                            message = TextFieldValue("")
+                        if (messageText.isNotBlank() && currentUserId != null) {
+                            val message = Message(
+                                senderId = currentUserId,
+                                receiverId = friendId,
+                                content = messageText.trim()
+                            )
+                            
+                            // Use ViewModel to send message - follows 3-layer architecture
+                            viewModel.sendMessage(message)
+                            messageText = ""
                         }
-                    }
+                    },
+                    modifier = Modifier.size(48.dp),
+                    containerColor = purpleMain,
+                    contentColor = Color.White
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
-                        tint = purpleMain
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Send,
+                            contentDescription = "Send",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
+            }
+        }
+    }
+    
+    // Error message from ViewModel
+    error?.let { errorMessage ->
+        LaunchedEffect(errorMessage) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.clearError()
+        }
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Card(
+                modifier = Modifier.padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.8f))
+            ) {
+                Text(
+                    text = errorMessage,
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp)
+                )
             }
         }
     }
 }
 
+@Composable
+fun MessageItem(
+    message: Message,
+    isFromCurrentUser: Boolean
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isFromCurrentUser) Arrangement.End else Arrangement.Start
+    ) {
+        Card(
+            modifier = Modifier.widthIn(max = 280.dp),
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (isFromCurrentUser) 16.dp else 4.dp,
+                bottomEnd = if (isFromCurrentUser) 4.dp else 16.dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isFromCurrentUser) purpleMain else Color.LightGray
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = message.content,
+                    color = if (isFromCurrentUser) Color.White else Color.Black,
+                    fontSize = 16.sp
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = formatTimestamp(message.timestamp),
+                    color = if (isFromCurrentUser) Color.White.copy(alpha = 0.7f) else Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val date = Date(timestamp)
+    val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+    return formatter.format(date)
+}
+
 @Preview(showBackground = true)
 @Composable
 fun ChatDetailScreenPreview() {
-    ChatDetailScreen()
+    ChatDetailScreen(
+        friendName = "John Doe",
+        friendId = "friend123",
+        onBack = { }
+    )
 }
