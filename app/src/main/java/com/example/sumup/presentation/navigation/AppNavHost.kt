@@ -549,8 +549,8 @@ fun AppNavHost(
             val getUserProfileUseCase = remember { DependencyModule.getUserProfileUseCase }
             val context = LocalContext.current
             
-            // Load current user's name
-            LaunchedEffect(Unit) {
+            // Load current user's name and chat data when screen is first displayed and when returning from other screens
+            LaunchedEffect(navController.currentBackStackEntry) {
                 getUserProfileUseCase.execute()
                     .onSuccess { user ->
                         userName = user.username
@@ -559,9 +559,8 @@ fun AppNavHost(
                         println("Failed to load user profile: ${exception.message}")
                         userName = "User" // fallback
                     }
-            }
-            
-            LaunchedEffect(Unit) {
+                
+                // Load chat rooms data
                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
                 if (currentUserId != null) {
                     try {
@@ -583,26 +582,13 @@ fun AppNavHost(
                                     val firestoreDb = FirebaseFirestore.getInstance()
                                     val otherDoc = firestoreDb.collection("Users").document(otherUserId).get().await()
                                     val otherName = otherDoc.getString("username") ?: "Unknown"
-                                    
-                                    // Get last message and time from Realtime Database
-                                    val lastMessage = roomSnapshot.child("lastMessage").getValue(String::class.java) ?: "No messages yet"
-                                    val lastMessageTime = roomSnapshot.child("lastMessageTime").getValue(Long::class.java) ?: 0L
-                                    
-                                    // Format the time
-                                    val formattedTime = if (lastMessageTime > 0) {
-                                        val date = java.util.Date(lastMessageTime)
-                                        val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
-                                        formatter.format(date)
-                                    } else {
-                                        ""
-                                    }
+                                    val otherProfilePic = otherDoc.getString("profilePic") ?: ""
                                     
                                     roomUsers.add(
                                         com.example.sumup.presentation.screen.chat.ChatFriend(
                                             name = otherName,
-                                            lastMessage = lastMessage,
-                                            lastMessageTime = formattedTime,
                                             hasUnreadMessage = false,
+                                            profilePicUrl = otherProfilePic,
                                             userId = otherUserId
                                         )
                                     )

@@ -183,7 +183,7 @@ fun EditProfileScreen(
                     else -> {
                         // Show default image
                         Image(
-                            painter = painterResource(id = R.drawable.profile_pic),
+                            painter = painterResource(id = R.drawable.logo),
                             contentDescription = "Profile Picture",
                             modifier = Modifier
                                 .size(140.dp)

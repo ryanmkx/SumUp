@@ -15,12 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.sumup.R
 import com.example.sumup.presentation.screen.common.FooterBar
 import com.example.sumup.presentation.screen.common.FooterNavigation
@@ -112,10 +114,9 @@ fun ChatMainScreen(
                     ChatItem(
                         imageRes = friend.imageRes,
                         name = friend.name,
-                        message = friend.lastMessage,
-                        time = friend.lastMessageTime,
                         hasMessage = unreadCount > 0,
                         unreadCount = unreadCount,
+                        profilePicUrl = friend.profilePicUrl,
                         onClick = { onChatClick(friend.name) }
                     )
                     Spacer(modifier = Modifier.height(15.dp))
@@ -139,10 +140,9 @@ fun ChatMainScreen(
 fun ChatItem(
     imageRes: Int,
     name: String,
-    message: String,
-    time: String,
     hasMessage: Boolean = false,
     unreadCount: Int = 0,
+    profilePicUrl: String = "", // Add profile picture URL parameter
     onClick: () -> Unit = {} // new parameter
 ) {
     Card(
@@ -162,17 +162,28 @@ fun ChatItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Profile image
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = "Profile",
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-            )
+            if (profilePicUrl.isNotEmpty()) {
+                AsyncImage(
+                    model = profilePicUrl,
+                    contentDescription = "Profile",
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Profile",
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                )
+            }
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Name + message
+            // Name only
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -181,27 +192,15 @@ fun ChatItem(
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
-                Text(
-                    text = message,
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    maxLines = 1
-                )
             }
 
-            // Time or unread indicator (dot only, no number)
+            // Unread indicator (dot only, no number)
             if (hasMessage) {
                 Box(
                     modifier = Modifier
                         .size(12.dp)
                         .clip(CircleShape)
                         .background(purpleMain)
-                )
-            } else {
-                Text(
-                    text = time,
-                    fontSize = 12.sp,
-                    color = Color.Gray
                 )
             }
         }
@@ -210,10 +209,9 @@ fun ChatItem(
 
 data class ChatFriend(
     val name: String,
-    val lastMessage: String,
-    val lastMessageTime: String,
     val hasUnreadMessage: Boolean = false,
-    val imageRes: Int = R.drawable.ic_launcher_foreground,
+    val imageRes: Int = R.drawable.logo,
+    val profilePicUrl: String = "", // Add profile picture URL from Firebase Storage
     val userId: String = "" // Add userId for navigation
 )
 
@@ -234,14 +232,11 @@ fun ChatMainScreenPreview() {
         friends = listOf(
             ChatFriend(
                 name = "John Doe",
-                lastMessage = "Hey! How are you?",
-                lastMessageTime = "2:30 PM",
                 hasUnreadMessage = true
             ),
             ChatFriend(
                 name = "Jane Smith",
-                lastMessage = "Thanks for the help!",
-                lastMessageTime = "1:15 PM"
+                hasUnreadMessage = false
             )
         )
     )
