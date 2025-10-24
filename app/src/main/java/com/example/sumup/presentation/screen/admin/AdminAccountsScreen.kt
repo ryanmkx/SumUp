@@ -20,6 +20,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sumup.presentation.screen.common.HeaderWithBack
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.sumup.businessLogic.DependencyModule
+import com.example.sumup.presentation.viewModel.AdminAccountsViewModel
 import com.example.sumup.presentation.ui.theme.purpleMain
 
 @Composable
@@ -28,6 +32,11 @@ fun AdminAccountsScreen(
     onAccountClick: (userId: String, name: String, email: String, created: String, avatar: String?) -> Unit = 
         { _, _, _, _, _ -> },
 ) {
+    val viewModel: AdminAccountsViewModel = viewModel { DependencyModule.createAdminAccountsViewModel() }
+    val users by viewModel.users.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
             HeaderWithBack(
@@ -50,7 +59,7 @@ fun AdminAccountsScreen(
             ) {
                 OutlinedTextField(
                     value = query,
-                    onValueChange = { query = it },
+                    onValueChange = { query = it; viewModel.search(query) },
                     placeholder = { Text("Search account name here...") },
                     singleLine = true,
                     modifier = Modifier
@@ -70,7 +79,7 @@ fun AdminAccountsScreen(
 
                 // Search button
                 IconButton(
-                    onClick = { /* TODO: hook up search */ },
+                    onClick = { viewModel.search(query) },
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(12.dp))
@@ -86,15 +95,29 @@ fun AdminAccountsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Sample account card (static for now). Replace with real Firestore results.
-            AccountCard(
-                userId = "UC00001",
-                name = "Elon Musk",
-                email = "chingchong@gmail.com",
-                onClick = {
-                    onAccountClick("UC00001", "Elon Musk", "chingchong@gmail.com", "22 JAN 2025", null)
-                }
-            )
+            LaunchedEffect(Unit) { viewModel.loadUsers() }
+
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (error != null) {
+                Text(text = error ?: "", color = Color.Red)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            users.forEach { u ->
+                val createdStr = u.createdAt?.toDate()?.let { java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault()).format(it) } ?: ""
+                AccountCard(
+                    userId = u.userId,
+                    name = u.username,
+                    email = u.email,
+                    onClick = {
+                        onAccountClick(u.userId, u.username, u.email, createdStr, u.profilePic.ifEmpty { null })
+                    }
+                )
+            }
         }
     }
 }

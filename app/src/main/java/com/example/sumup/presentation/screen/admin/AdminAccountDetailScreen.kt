@@ -1,5 +1,6 @@
 package com.example.sumup.presentation.screen.admin
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -9,11 +10,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -24,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.sumup.presentation.screen.common.HeaderWithBack
 import com.example.sumup.presentation.ui.theme.purpleMain
 
@@ -37,12 +35,11 @@ fun AdminAccountDetailScreen(
     onBack: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
 ) {
+    var showConfirm by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
-            HeaderWithBack(
-                title = userCode,
-                onNavigateBack = onBack
-            )
+            HeaderWithBack(title = userCode, onNavigateBack = onBack)
         }
     ) { innerPadding ->
         Column(
@@ -54,7 +51,6 @@ fun AdminAccountDetailScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Avatar
             AsyncImage(
                 model = avatarUrl,
                 contentDescription = "Avatar",
@@ -120,7 +116,7 @@ fun AdminAccountDetailScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             Button(
-                onClick = onDeleteAccount,
+                onClick = { showConfirm = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
@@ -137,6 +133,14 @@ fun AdminAccountDetailScreen(
             }
         }
     }
+
+    com.example.sumup.presentation.screen.common.ConfirmationPopUp(
+        showDialog = showConfirm,
+        title = "Confirm Deletion",
+        message = "Are you sure you want to delete $name? This action cannot be undone.",
+        onConfirm = { showConfirm = false; onDeleteAccount() },
+        onDismiss = { showConfirm = false }
+    )
 }
 
 @Composable
@@ -170,55 +174,3 @@ private fun InfoRow(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun AdminAccountDetailScreenPreview() {
-    AdminAccountDetailScreen(
-        userCode = "UC00001",
-        name = "Elon Musk",
-        email = "chingchong@gmail.com",
-        createdDate = "22 JAN 2025",
-        avatarUrl = "https://i.pravatar.cc/300"
-    )
-}
-//
-//package com.example.sumup.presentation.screen.admin
-//
-//import androidx.compose.foundation.layout.Column
-//import androidx.compose.foundation.layout.fillMaxSize
-//import androidx.compose.foundation.layout.padding
-//import androidx.compose.material3.Scaffold
-//import androidx.compose.runtime.Composable
-//import androidx.compose.ui.Modifier
-//import androidx.compose.ui.tooling.preview.Preview
-//import androidx.compose.ui.unit.dp
-//import com.example.sumup.presentation.screen.common.HeaderWithBack
-//
-//@Composable
-//fun AdminAccountDetailScreen(
-//    onBack: () -> Unit = {},
-//) {
-//    Scaffold(
-//        topBar = {
-//            HeaderWithBack(
-//                title = "Accounts",
-//                onNavigateBack = onBack
-//            )
-//        }
-//    ) { innerPadding ->
-//        Column(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .padding(innerPadding)
-//                .padding(horizontal = 16.dp, vertical = 12.dp)
-//        ) {}
-//    }
-//}
-//
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun AdminAccountDetailScreenPreview() {
-//    AdminAccountDetailScreen(
-//    )
-//}

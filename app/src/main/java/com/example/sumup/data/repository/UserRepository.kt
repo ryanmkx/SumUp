@@ -25,6 +25,10 @@ interface UserProfileRepository {
     suspend fun getUserProfileByEmail(email: String): Result<Users>
     suspend fun createUserProfile(user: Users): Result<Unit>
     suspend fun updateUserProfile(user: Users): Result<Unit>
+    suspend fun listUsersByLevel(level: String): Result<List<Users>>
+    suspend fun searchUsers(query: String, level: String? = null): Result<List<Users>>
+    suspend fun deleteUser(userId: String): Result<Unit>
+    suspend fun disableUser(userId: String): Result<Unit>
     
     // Friend request management
     suspend fun sendFriendRequest(fromUserId: String, toUserId: String): Result<Unit>
@@ -54,17 +58,29 @@ class FirestoreUserProfileRepository(private val db: FirebaseFirestore) : UserPr
 
     override suspend fun getUserProfileByEmail(email: String): Result<Users> {
         return try {
+            // Normalize email: trim whitespace and convert to lowercase
+            val normalizedEmail = email.trim().lowercase()
+            
+            println("DEBUG: Searching for email: '$normalizedEmail'")
+            
             val snapshot = db.collection("Users")
-                .whereEqualTo("email", email)
+                .whereEqualTo("email", normalizedEmail)
                 .limit(1)
                 .get()
                 .await()
 
+            println("DEBUG: Query returned ${snapshot.documents.size} documents")
+            
             val user = snapshot.documents.firstOrNull()?.toObject<Users>()
-                ?: return Result.failure(Exception("User profile not found for email"))
-
+            if (user == null) {
+                println("DEBUG: No user found for email: '$normalizedEmail'")
+                return Result.failure(Exception("User profile not found for email"))
+            }
+            
+            println("DEBUG: Found user: ${user.username} with email: ${user.email}")
             Result.success(user)
         } catch (e: Exception) {
+            println("DEBUG: Error in getUserProfileByEmail: ${e.message}")
             Result.failure(e)
         }
     }
@@ -81,6 +97,62 @@ class FirestoreUserProfileRepository(private val db: FirebaseFirestore) : UserPr
     override suspend fun updateUserProfile(user: Users): Result<Unit> {
         return try {
             db.collection("Users").document(user.userId).set(user).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun listUsersByLevel(level: String): Result<List<Users>> {
+        return try {
+            val snapshot = db.collection("Users")
+                .whereEqualTo("level", level)
+                .get()
+                .await()
+            val users = snapshot.documents.mapNotNull { it.toObject<Users>() }
+            Result.success(users)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun searchUsers(query: String, level: String?): Result<List<Users>> {
+        // Reliable, index-free search: fetch users (optionally by level) and filter client-side.
+        return try {
+            val baseQuery = if (level != null) {
+                db.collection("Users").whereEqualTo("level", level)
+            } else {
+                db.collection("Users")
+            }
+            val snapshot = baseQuery.get().await()
+            val lower = query.trim().lowercase()
+            val users = snapshot.documents
+                .mapNotNull { it.toObject<Users>() }
+                .filter { u ->
+                    if (lower.isEmpty()) true else {
+                        u.username.lowercase().contains(lower) || u.email.lowercase().contains(lower)
+                    }
+                }
+            Result.success(users)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteUser(userId: String): Result<Unit> {
+        return try {
+            db.collection("Users").document(userId).delete().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun disableUser(userId: String): Result<Unit> {
+        return try {
+            db.collection("Users").document(userId)
+                .update("status", "disabled")
+                .await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

@@ -32,6 +32,8 @@ import com.example.sumup.data.repository.FirebaseChatRepository
 import com.example.sumup.presentation.screen.login.MainScreen
 import com.example.sumup.presentation.screen.login.LoginScreen
 import com.example.sumup.presentation.screen.login.SignUpScreen
+import com.example.sumup.presentation.screen.login.ForgotPasswordEmailScreen
+import com.example.sumup.presentation.screen.login.ChangePasswordScreen
 import com.example.sumup.presentation.screen.textSummarizer.SummarizeMainScreen
 import com.example.sumup.presentation.screen.textSummarizer.SummarizeResultScreen
 import com.example.sumup.presentation.screen.profile.ProfileMainScreen
@@ -58,8 +60,8 @@ object Routes {
     const val MAIN = "main"
     const val LOGIN = "login"
     const val SIGN_UP = "sign_up"
-    const val FORGOT_PASSWORD_CODE = "forgot_password_code"
     const val FORGOT_PASSWORD_EMAIL = "forgot_password_email"
+    const val CHANGE_PASSWORD = "change_password"
 
     const val SUMMARIZE_MAIN = "summarize_main"
     const val SUMMARIZE_RESULT = "summarize_result"
@@ -103,6 +105,31 @@ fun AppNavHost(
         modifier = modifier
     ) {
         composable(Routes.MAIN) {
+            val context = LocalContext.current
+            LaunchedEffect(Unit) {
+                val current = FirebaseAuth.getInstance().currentUser
+                if (current != null) {
+                    // Check profile to determine role and status
+                    val getUserProfileUseCase = DependencyModule.getUserProfileUseCase
+                    getUserProfileUseCase.execute()
+                        .onSuccess { user ->
+                            if (user.status.equals("disabled", ignoreCase = true)) {
+                                // Sign out disabled accounts and stay on Main
+                                DependencyModule.userAuthRepository.signOut()
+                                Toast.makeText(context, "This account has been disabled.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val destination = if (user.level.lowercase() == "admin") Routes.ADMIN_HOME else Routes.SUMMARIZE_MAIN
+                                navController.navigate(destination) {
+                                    popUpTo(Routes.MAIN) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                        .onFailure {
+                            // If profile fetch fails, remain on Main
+                        }
+                }
+            }
             MainScreen(
                 onLoginClick = { navController.navigate(Routes.LOGIN) },
                 onRegisterClick = { navController.navigate(Routes.SIGN_UP) }
@@ -110,8 +137,18 @@ fun AppNavHost(
         }
         // Admin home entry (Manage Accounts)
         composable(Routes.ADMIN_HOME) {
+            val auth = remember { DependencyModule.userAuthRepository }
+            val context = LocalContext.current
             com.example.sumup.presentation.screen.admin.AdminMainScreen(
-                onManageClick = { navController.navigate(Routes.ADMIN_ACCOUNTS) }
+                onManageClick = { navController.navigate(Routes.ADMIN_ACCOUNTS) },
+                onLogout = {
+                    auth.signOut()
+                    Toast.makeText(context, "Logged out", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Routes.MAIN) {
+                        popUpTo(Routes.MAIN) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
         composable(Routes.LOGIN) {
@@ -122,7 +159,7 @@ fun AppNavHost(
 
             LoginScreen(
                 onBack = { navController.popBackStack() },
-                onForgotPassword = { /* TODO: route later */ },
+                onForgotPassword = { navController.navigate(Routes.FORGOT_PASSWORD_EMAIL) },
                 onLogin = { email, password ->
                     coroutineScope.launch {
                         val result = signInUseCase.execute(email, password)
@@ -184,6 +221,80 @@ fun AppNavHost(
                 }
             )
         }
+        
+        // Forgot Password Email Screen
+        composable(Routes.FORGOT_PASSWORD_EMAIL) {
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+            val forgotPasswordUseCase = remember { DependencyModule.forgotPasswordUseCase }
+            var email by remember { mutableStateOf("") }
+            var isLoading by remember { mutableStateOf(false) }
+
+            ForgotPasswordEmailScreen(
+                onBack = { navController.popBackStack() },
+                isLoading = isLoading,
+                onSendEmail = { emailAddress ->
+                    email = emailAddress
+                    isLoading = true
+                    coroutineScope.launch {
+                        val result = forgotPasswordUseCase.sendPasswordResetEmail(emailAddress)
+                        isLoading = false
+                        if (result.isSuccess) {
+                            Toast.makeText(
+                                context,
+                                "Password reset email sent! Check your inbox and follow the link to reset your password.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            navController.navigate(Routes.LOGIN) {
+                                popUpTo(Routes.FORGOT_PASSWORD_EMAIL) { inclusive = true }
+                            }
+                        } else {
+                            val errorMessage = result.exceptionOrNull()?.message ?: "Failed to send reset email"
+                            Toast.makeText(
+                                context,
+                                errorMessage,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+            )
+        }
+        
+        // Change Password Screen
+        composable(Routes.CHANGE_PASSWORD) {
+            val context = LocalContext.current
+            val coroutineScope = rememberCoroutineScope()
+            val changePasswordUseCase = remember { DependencyModule.changePasswordUseCase }
+            var isLoading by remember { mutableStateOf(false) }
+
+            ChangePasswordScreen(
+                onBack = { navController.popBackStack() },
+                onPasswordChanged = { currentPassword, newPassword ->
+                    isLoading = true
+                    coroutineScope.launch {
+                        val result = changePasswordUseCase.execute(currentPassword, newPassword)
+                        isLoading = false
+                        if (result.isSuccess) {
+                            Toast.makeText(
+                                context,
+                                "Password changed successfully!",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            navController.popBackStack()
+                        } else {
+                            val errorMessage = result.exceptionOrNull()?.message ?: "Failed to change password"
+                            Toast.makeText(
+                                context,
+                                errorMessage,
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                }
+            )
+        }
+        
         composable(Routes.SUMMARIZE_MAIN) {
             SummarizeMainScreen(
                 onSummarize = { _ ->
@@ -269,10 +380,15 @@ fun AppNavHost(
             )
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            val name = backStackEntry.arguments?.getString("name") ?: ""
-            val email = backStackEntry.arguments?.getString("email") ?: ""
-            val created = backStackEntry.arguments?.getString("created") ?: ""
-            val avatar = backStackEntry.arguments?.getString("avatar") ?: ""
+            val name = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("name") ?: "", Charsets.UTF_8.name())
+            val email = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("email") ?: "", Charsets.UTF_8.name())
+            val created = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("created") ?: "", Charsets.UTF_8.name())
+            val avatar = java.net.URLDecoder.decode(backStackEntry.arguments?.getString("avatar") ?: "", Charsets.UTF_8.name())
+
+            // Compose-scope values
+            val deleteUseCase = remember { DependencyModule.deleteUserAccountUseCase }
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
 
             AdminAccountDetailScreen(
                 userCode = userId,
@@ -281,7 +397,18 @@ fun AppNavHost(
                 createdDate = created,
                 avatarUrl = avatar.ifEmpty { null },
                 onBack = { navController.popBackStack() },
-                onDeleteAccount = { /* TODO: hook up deletion */ }
+                onDeleteAccount = {
+                    // Use DI to disable the user and then navigate back
+                    scope.launch {
+                        val res = deleteUseCase.execute(userId)
+                        if (res.isSuccess) {
+                            Toast.makeText(context, "Account disabled", Toast.LENGTH_SHORT).show()
+                            navController.popBackStack()
+                        } else {
+                            Toast.makeText(context, res.exceptionOrNull()?.message ?: "Disable failed", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
             )
         }
         composable(Routes.FLASHCARD_START) {
@@ -320,6 +447,7 @@ fun AppNavHost(
                 userName = if (userName.isNotEmpty()) userName else "",
                 email = if (email.isNotEmpty()) email else "",
                 onEditProfile = { navController.navigate(Routes.PROFILE_EDIT) },
+                onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 onLogout = {
                     authRepo.signOut()
                     navController.navigate(Routes.MAIN) {

@@ -131,16 +131,6 @@ fun ChatMainScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
-
-            // Bottom text
-            Text(
-                text = "End",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }

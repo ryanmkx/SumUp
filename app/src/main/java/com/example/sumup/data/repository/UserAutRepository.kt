@@ -6,6 +6,9 @@ import kotlinx.coroutines.tasks.await
 interface UserAuthRepository {
     suspend fun signInWithEmail(email: String, password: String): Result<String>
     suspend fun signUpWithEmail(email: String, password: String): Result<String>
+    suspend fun sendPasswordResetEmail(email: String): Result<Unit>
+    suspend fun confirmPasswordReset(code: String, newPassword: String): Result<Unit>
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
     fun signOut()
     fun getCurrentUserId(): String?
 }
@@ -33,6 +36,44 @@ class FirebaseAuthRepository(private val auth: FirebaseAuth) : UserAuthRepositor
 
     override fun signOut() {
         auth.signOut()
+    }
+
+    override suspend fun sendPasswordResetEmail(email: String): Result<Unit> {
+        return try {
+            auth.sendPasswordResetEmail(email).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun confirmPasswordReset(code: String, newPassword: String): Result<Unit> {
+        return try {
+            auth.confirmPasswordReset(code, newPassword).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val currentUser = auth.currentUser
+                ?: return Result.failure(Exception("No user is currently signed in"))
+            
+            // Re-authenticate user with current password
+            val credential = com.google.firebase.auth.EmailAuthProvider.getCredential(
+                currentUser.email ?: "", 
+                currentPassword
+            )
+            currentUser.reauthenticate(credential).await()
+            
+            // Update password
+            currentUser.updatePassword(newPassword).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override fun getCurrentUserId(): String? {

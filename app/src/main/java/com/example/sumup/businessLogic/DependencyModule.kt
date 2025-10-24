@@ -4,6 +4,7 @@ import com.example.sumup.data.repository.*
 import com.example.sumup.presentation.viewModel.ChatViewModel
 import com.example.sumup.presentation.viewModel.HistoryViewModel
 import com.example.sumup.presentation.viewModel.ProfileViewModel
+import com.example.sumup.presentation.viewModel.AdminAccountsViewModel
 import com.example.sumup.presentation.viewModel.FriendRequestViewModel
 import com.example.sumup.presentation.viewModel.EditProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -73,6 +74,14 @@ object DependencyModule {
         GetUserProfile(userAuthRepository, userProfileRepository) 
     }
     
+    val forgotPasswordUseCase: ForgotPassword by lazy { 
+        ForgotPassword(userAuthRepository, userProfileRepository) 
+    }
+    
+    val changePasswordUseCase: ChangePassword by lazy { 
+        ChangePassword(userAuthRepository) 
+    }
+    
     val getUserSummariesUseCase: GetUserSummaries by lazy { 
         GetUserSummaries(userAuthRepository, summaryRepository) 
     }
@@ -95,6 +104,17 @@ object DependencyModule {
     
     val getUnreadMessageCountUseCase: GetUnreadMessageCount by lazy { 
         GetUnreadMessageCount(userAuthRepository, chatRepository) 
+    }
+    
+    // Admin use cases
+    val listUsersByLevelUseCase: ListUsersByLevel by lazy {
+        ListUsersByLevel(userProfileRepository)
+    }
+    val searchUsersUseCase: SearchUsers by lazy {
+        SearchUsers(userProfileRepository)
+    }
+    val deleteUserAccountUseCase: DeleteUserAccount by lazy {
+        DeleteUserAccount(userProfileRepository)
     }
     
     // Presentation Layer - ViewModels
@@ -128,6 +148,14 @@ object DependencyModule {
         return EditProfileViewModel(
             getUserProfileUseCase,
             updateProfileUseCase
+        )
+    }
+    
+    fun createAdminAccountsViewModel(): AdminAccountsViewModel {
+        return AdminAccountsViewModel(
+            listUsersByLevelUseCase,
+            searchUsersUseCase,
+            deleteUserAccountUseCase
         )
     }
 }

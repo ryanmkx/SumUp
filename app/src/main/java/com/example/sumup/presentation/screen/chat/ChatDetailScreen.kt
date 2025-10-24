@@ -1,21 +1,17 @@
 package com.example.sumup.presentation.screen.chat
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,8 +24,6 @@ import com.example.sumup.presentation.screen.common.HeaderWithBack
 import com.example.sumup.presentation.ui.theme.purpleMain
 import com.example.sumup.presentation.viewModel.ChatViewModel
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,7 +40,6 @@ fun ChatDetailScreen(
     val viewModel: ChatViewModel = viewModel { DependencyModule.createChatViewModel() }
     
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
-    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     
     // Create chat room ID
@@ -179,7 +172,7 @@ fun ChatDetailScreen(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Send,
+                            imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Send",
                             modifier = Modifier.size(20.dp)
                         )
