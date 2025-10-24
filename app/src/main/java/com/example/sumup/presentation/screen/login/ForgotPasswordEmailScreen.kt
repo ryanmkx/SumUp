@@ -1,7 +1,6 @@
 package com.example.sumup.presentation.screen.login
 
 import android.util.Patterns
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -40,13 +39,12 @@ fun ForgotPasswordEmailScreen(
 ) {
     // State variables for text fields
     var email by remember { mutableStateOf("") }
-    val isValid = remember(email) { email.isNotBlank() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() }
+    val isValid = remember(email) { email.isNotBlank() && Patterns.EMAIL_ADDRESS.matcher(email).matches() }
     var emailError by remember { mutableStateOf("") }
 
     // Focus manager to dismiss keyboard
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
-    
+
     // Function to handle sending email
     fun handleSendEmail() {
         if (isValid) {
