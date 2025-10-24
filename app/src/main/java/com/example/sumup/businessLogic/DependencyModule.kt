@@ -10,6 +10,7 @@ import com.example.sumup.presentation.viewModel.EditProfileViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 /**
  * Dependency Injection module for proper 3-layer architecture separation
@@ -27,6 +28,7 @@ object DependencyModule {
     private val firebaseDatabase: FirebaseDatabase by lazy { 
         FirebaseDatabase.getInstance("https://sumup-31d9b-default-rtdb.asia-southeast1.firebasedatabase.app")
     }
+    private val firebaseStorage: FirebaseStorage by lazy { FirebaseStorage.getInstance() }
     
     // Data Layer - Repositories
     val userAuthRepository: UserAuthRepository by lazy { 
@@ -146,8 +148,9 @@ object DependencyModule {
     
     fun createEditProfileViewModel(): EditProfileViewModel {
         return EditProfileViewModel(
-            getUserProfileUseCase,
-            updateProfileUseCase
+            userProfileRepository,
+            firebaseAuth,
+            firebaseStorage
         )
     }
     

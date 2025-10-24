@@ -427,12 +427,15 @@ fun AppNavHost(
             val getUserProfileUseCase = remember { DependencyModule.getUserProfileUseCase }
             var userName by remember { mutableStateOf("") }
             var email by remember { mutableStateOf("") }
+            var profilePicUrl by remember { mutableStateOf("") }
 
-            LaunchedEffect(Unit) {
+            // Load profile data when screen is first displayed and when returning from other screens
+            LaunchedEffect(navController.currentBackStackEntry) {
                 getUserProfileUseCase.execute()
                     .onSuccess { user ->
                         userName = user.username
                         email = user.email
+                        profilePicUrl = user.profilePic
                     }
                     .onFailure { exception ->
                         Toast.makeText(
@@ -446,6 +449,7 @@ fun AppNavHost(
             ProfileMainScreen(
                 userName = if (userName.isNotEmpty()) userName else "",
                 email = if (email.isNotEmpty()) email else "",
+                profilePicUrl = profilePicUrl,
                 onEditProfile = { navController.navigate(Routes.PROFILE_EDIT) },
                 onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 onLogout = {

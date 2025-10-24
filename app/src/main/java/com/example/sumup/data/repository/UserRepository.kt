@@ -217,7 +217,7 @@ class FirestoreUserProfileRepository(private val db: FirebaseFirestore) : UserPr
                 "type" to "friend_request_rejected",
                 "fromUserId" to userId,
                 "toUserId" to friendUserId,
-                "timestamp" to com.google.firebase.Timestamp.now()
+                "timestamp" to Timestamp.now()
             )
             batch.set(
                 db.collection("Notifications").document("${friendUserId}_${userId}_rejected"),
@@ -237,7 +237,7 @@ class FirestoreUserProfileRepository(private val db: FirebaseFirestore) : UserPr
                 "type" to "friend_request_rejected",
                 "fromUserId" to fromUserId,
                 "toUserId" to toUserId,
-                "timestamp" to com.google.firebase.Timestamp.now()
+                "timestamp" to Timestamp.now()
             )
             
             db.collection("Notifications").document("${toUserId}_${fromUserId}_rejected")

@@ -12,12 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.sumup.R
 import com.example.sumup.presentation.ui.theme.purpleMain
 import com.example.sumup.presentation.screen.common.FooterBar
@@ -28,6 +30,7 @@ import com.example.sumup.presentation.screen.common.Header
 fun ProfileMainScreen(
     userName: String = "",
     email: String = "",
+    profilePicUrl: String = "",
     onEditProfile: () -> Unit = {},
     onLogout: () -> Unit = {},
     onChangePassword: () -> Unit = {},
@@ -53,13 +56,24 @@ fun ProfileMainScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Profile Picture
-                Image(
-                    painter = painterResource(id = R.drawable.profile_pic),
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier
-                        .size(140.dp)
-                        .clip(CircleShape)
-                )
+                if (profilePicUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = profilePicUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.profile_pic),
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier
+                            .size(140.dp)
+                            .clip(CircleShape)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(15.dp))
 

@@ -64,6 +64,7 @@ fun EditProfileScreen(
     val userProfile by viewModel.userProfile.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val isUploadingImage by viewModel.isUploadingImage.collectAsStateWithLifecycle()
     
     // Load user data when screen is first displayed
     LaunchedEffect(Unit) {
@@ -86,6 +87,14 @@ fun EditProfileScreen(
         }
     }
     
+    // Clear selectedImageUri after successful upload and show success message
+    LaunchedEffect(userProfile) {
+        if (userProfile?.profilePic?.isNotEmpty() == true && selectedImageUri != null) {
+            selectedImageUri = null
+            Toast.makeText(context, "Profile picture updated successfully!", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
     // Validation functions
     fun validateName(name: String): String {
         return when {
@@ -101,7 +110,11 @@ fun EditProfileScreen(
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
-        selectedImageUri = uri
+        uri?.let { imageUri ->
+            selectedImageUri = imageUri
+            // Upload image to Firebase Storage
+            viewModel.uploadProfileImage(imageUri)
+        }
     }
 
     val focusManager = LocalFocusManager.current
@@ -143,42 +156,70 @@ fun EditProfileScreen(
 
             // Profile picture with edit button overlay
             Box(contentAlignment = Alignment.BottomEnd) {
-                if (selectedImageUri != null) {
-                    AsyncImage(
-                        model = selectedImageUri,
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(140.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(id = R.drawable.profile_pic), // your profile image
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier
-                            .size(140.dp)
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
+                when {
+                    selectedImageUri != null -> {
+                        // Show selected image (before upload)
+                        AsyncImage(
+                            model = selectedImageUri,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    userProfile?.profilePic?.isNotEmpty() == true -> {
+                        // Show uploaded image from Firebase Storage
+                        val profilePic = userProfile?.profilePic ?: ""
+                        AsyncImage(
+                            model = profilePic,
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    else -> {
+                        // Show default image
+                        Image(
+                            painter = painterResource(id = R.drawable.profile_pic),
+                            contentDescription = "Profile Picture",
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
 
                 IconButton(
                     onClick = {
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
+                        if (!isUploadingImage) {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
                     },
                     modifier = Modifier
                         .size(40.dp)
-                        .background(purpleMain, CircleShape)
+                        .background(if (isUploadingImage) Color.Gray else purpleMain, CircleShape),
+                    enabled = !isUploadingImage
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.edit_icon),
-                        modifier = Modifier.size(24.dp),
-                        contentDescription = "Edit Picture",
-                        tint = Color.White
-                    )
+                    if (isUploadingImage) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(id = R.drawable.edit_icon),
+                            modifier = Modifier.size(24.dp),
+                            contentDescription = "Edit Picture",
+                            tint = Color.White
+                        )
+                    }
                 }
             }
 
